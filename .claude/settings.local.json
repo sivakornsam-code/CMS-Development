@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(\"/Users/baby/Library/Application Support/Logi/LogiPluginService/PluginHosts/node22/node/bin/node\" --version)",
+      "Bash(\"/Users/baby/Library/Application Support/Logi/LogiPluginService/PluginHosts/node22/node/bin/npm\" --version)",
+      "Bash(\"/Users/baby/Library/Application Support/com.raycast.macos/NodeJS/runtime/22.14.0/bin/node\" --version)",
+      "Bash('/Users/baby/Library/Application Support/com.raycast.macos/NodeJS/runtime/22.14.0/bin/node' '/Users/baby/Library/Application Support/Logi/LogiPluginService/PluginHosts/node22/node/lib/node_modules/npm/bin/npm-cli.js' --version)",
+      "Bash('/Users/baby/Library/Application Support/com.raycast.macos/NodeJS/runtime/22.14.0/bin/node' '/Users/baby/Library/Application Support/Logi/LogiPluginService/PluginHosts/node22/node/lib/node_modules/npm/bin/npm-cli.js' install)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(curl -v http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/index.html)",
+      "Bash(curl -s \"http://localhost:5173/@vite/client\")",
+      "Bash(curl -v http://localhost:5173/dashboard/general)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5180/)",
+      "Bash(kill %1)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

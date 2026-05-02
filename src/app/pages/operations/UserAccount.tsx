@@ -1,0 +1,360 @@
+import { useState } from "react";
+import { X, ShoppingCart, DollarSign, Activity, AlertCircle, Check } from "lucide-react";
+import { mockUsers, mockOrders } from "../../data/mockData";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { TablePagination } from "../../components/ui/TablePagination";
+
+const PAGE_SIZE = 5;
+
+type User = typeof mockUsers[0] & { status: string };
+
+const userOrders = (email: string) => mockOrders.filter((o) => o.user === email);
+
+const activityLog = [
+  { action: "Purchase", product: "ThaiPass Plus", date: "2025-04-24 09:32" },
+  { action: "Used", product: "Airport Transfer", date: "2025-04-20 14:10" },
+  { action: "Purchase", product: "eSIM 7D Standard", date: "2025-03-15 11:00" },
+];
+
+function InactivateConfirmDialog({
+  user,
+  onConfirm,
+  onCancel,
+}: {
+  user: User;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+            <AlertCircle size={18} className="text-red-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Inactivate Account</h3>
+            <p className="text-xs text-slate-500 mt-0.5">This action will block app login</p>
+          </div>
+        </div>
+        <p className="text-xs text-slate-600 mb-1">
+          Are you sure you want to inactivate <span className="font-medium text-slate-900">{user.email}</span>?
+        </p>
+        <p className="text-xs text-slate-500 mb-5">
+          The user will not be able to log in to the app. An error pop-up will be shown to them on login.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium transition-colors"
+          >
+            Inactivate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserDetailModal({
+  user,
+  onClose,
+  onStatusChange,
+}: {
+  user: User;
+  onClose: () => void;
+  onStatusChange: (email: string, status: string) => void;
+}) {
+  const orders = userOrders(user.email);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [localStatus, setLocalStatus] = useState(user.status);
+
+  function handleInactivate() {
+    setLocalStatus("Inactive");
+    onStatusChange(user.email, "Inactive");
+    setShowConfirm(false);
+  }
+
+  function handleReactivate() {
+    setLocalStatus("Active");
+    onStatusChange(user.email, "Active");
+  }
+
+  return (
+    <>
+      {showConfirm && (
+        <InactivateConfirmDialog
+          user={user}
+          onConfirm={handleInactivate}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">User Detail</h3>
+              <p className="text-xs text-slate-500">{user.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {localStatus === "Active" ? (
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <X size={12} /> Inactivate
+                </button>
+              ) : (
+                <button
+                  onClick={handleReactivate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                >
+                  <Check size={12} /> Reactivate
+                </button>
+              )}
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5 space-y-5">
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">User Detail</h4>
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
+                {[
+                  ["Email", user.email],
+                  ["Registered Date", user.registered],
+                  ["User Type", user.userType],
+                  ["Partner Source", user.partner],
+                  ["TDAC Status", user.tdac],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-4">
+                    <span className="text-xs text-slate-500 shrink-0">{label}</span>
+                    <span className="text-xs font-medium text-slate-800 text-right">{value}</span>
+                  </div>
+                ))}
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-xs text-slate-500 shrink-0">Account Status</span>
+                  <StatusBadge status={localStatus} />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                Transaction Log — Summary
+              </h4>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <ShoppingCart size={14} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Total Orders</p>
+                    <p className="text-sm font-semibold text-slate-900">{user.orders}</p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                    <DollarSign size={14} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Total Spending</p>
+                    <p className="text-sm font-semibold text-slate-900">{user.spend}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50">
+                      {["Order ID", "Category", "Product", "Total Paid"].map((h) => (
+                        <th key={h} className="text-left text-xs font-medium text-slate-400 px-3 py-2">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.length > 0 ? (
+                      orders.map((o) => (
+                        <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer">
+                          <td className="px-3 py-2 text-xs text-blue-600 font-medium">{o.id}</td>
+                          <td className="px-3 py-2 text-xs text-slate-600">{o.category}</td>
+                          <td className="px-3 py-2 text-xs text-slate-700">{o.product}</td>
+                          <td className="px-3 py-2 text-xs text-slate-700 font-medium">{o.total}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-4 text-xs text-slate-400 text-center">
+                          No orders from this user in current view
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <span className="flex items-center gap-2">
+                  <Activity size={13} />
+                  Activity Log
+                </span>
+              </h4>
+              <div className="space-y-2">
+                {activityLog.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                        a.action === "Purchase" ? "bg-blue-100" : "bg-emerald-100"
+                      }`}
+                    >
+                      <span className="text-[10px] font-semibold">
+                        {a.action === "Purchase" ? "P" : "U"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-medium text-slate-800">
+                        {a.action} — <span className="text-slate-600">{a.product}</span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">{a.date}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function UserAccount() {
+  const [users, setUsers] = useState(mockUsers.map((u) => ({ ...u })));
+  const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userTypeFilter, setUserTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [tdacFilter, setTdacFilter] = useState("");
+  const [page, setPage] = useState(1);
+
+  function handleStatusChange(email: string, status: string) {
+    setUsers((prev) => prev.map((u) => (u.email === email ? { ...u, status } : u)));
+    if (selectedUser?.email === email) {
+      setSelectedUser((prev) => (prev ? { ...prev, status } : null));
+    }
+  }
+
+  const filtered = users.filter((u) => {
+    const matchSearch = !search || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchType = !userTypeFilter || u.userType === userTypeFilter;
+    const matchStatus = !statusFilter || u.status === statusFilter;
+    const matchTdac = !tdacFilter || u.tdac === tdacFilter;
+    return matchSearch && matchType && matchStatus && matchTdac;
+  });
+
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return (
+    <div>
+      {selectedUser && (
+        <UserDetailModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+
+      <FilterBar
+        showSearch
+        searchPlaceholder="Search user email..."
+        showPeriod
+        onSearch={(q) => { setSearch(q); setPage(1); }}
+        extraFilters={
+          <>
+            <select
+              value={userTypeFilter}
+              onChange={(e) => { setUserTypeFilter(e.target.value); setPage(1); }}
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All User Types</option>
+              <option value="Organic">Organic</option>
+              <option value="Affiliate">Affiliate</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <select
+              value={tdacFilter}
+              onChange={(e) => { setTdacFilter(e.target.value); setPage(1); }}
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All TDAC Status</option>
+              <option value="Verified">Verified</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </>
+        }
+      />
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <span className="text-xs text-slate-500">{filtered.length} users</span>
+        </div>
+        <div className="overflow-x-auto relative">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                {["Email", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status", "Registered Date"].map((h) => (
+                  <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
+                ))}
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map((u) => (
+                <tr
+                  key={u.email}
+                  className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
+                  onClick={() => setSelectedUser(u)}
+                >
+                  <td className="px-4 py-3 text-xs text-blue-600 font-medium">{u.email}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{u.orders}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{u.spend}</td>
+                  <td className="px-4 py-3"><StatusBadge status={u.userType} /></td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{u.partner}</td>
+                  <td className="px-4 py-3"><StatusBadge status={u.tdac} /></td>
+                  <td className="px-4 py-3 text-xs text-slate-500">{u.registered}</td>
+                  <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
+                    <StatusBadge status={u.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filtered.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">No users found</div>}
+        <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
+      </div>
+    </div>
+  );
+}
