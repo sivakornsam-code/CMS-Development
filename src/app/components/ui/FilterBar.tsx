@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Calendar, ChevronDown, Search, Download, Plus, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Search, Download, Plus } from "lucide-react";
+import { FilterDropdown } from "./FilterDropdown";
 
 const periodOptions = ["All time", "Today", "Last 7 days", "Last 30 days", "This month", "Custom range"];
 
@@ -32,21 +33,8 @@ export function FilterBar({
 }: FilterBarProps) {
   const [period, setPeriod] = useState("All time");
   const [search, setSearch] = useState("");
-  const [periodOpen, setPeriodOpen] = useState(false);
-  const periodRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!periodOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (!periodRef.current?.contains(e.target as Node)) setPeriodOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [periodOpen]);
-
   const handlePeriod = (p: string) => {
     setPeriod(p);
-    setPeriodOpen(false);
     onPeriodChange?.(p);
   };
 
@@ -66,29 +54,12 @@ export function FilterBar({
       )}
 
       {showPeriod && (
-        <div className="relative" ref={periodRef}>
-          <button
-            onClick={() => setPeriodOpen(!periodOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50"
-          >
-            <Calendar size={13} />
-            {period}
-            <ChevronDown size={13} />
-          </button>
-          {periodOpen && (
-            <div className="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
-              {periodOptions.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePeriod(p)}
-                  className={`block w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${p === period ? "text-blue-600 font-medium" : "text-slate-700"}`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <FilterDropdown
+          value={period}
+          options={periodOptions.map((p) => ({ label: p, value: p }))}
+          onChange={handlePeriod}
+          icon={Calendar}
+        />
       )}
 
       {extraFilters}

@@ -2,14 +2,20 @@ import { useState } from "react";
 import { X, DollarSign, ShoppingBag, Wifi, TrendingUp } from "lucide-react";
 import { mockEsim } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
 
 type ES = typeof mockEsim[0];
 
 const ALL_STATUSES = ["Processing", "Not installed", "Inactive", "Active", "Out of data", "Expired"];
+const STATUS_PRIORITY = ["Processing", "Not installed", "Active", "Out of data", "Expired", "Inactive"];
+type SortKey = "status" | "purchasedDate";
+type SortDir = "asc" | "desc";
 
 function MiniDash() {
   const totalRevenue = mockEsim.reduce((sum, r) => {
@@ -170,14 +176,14 @@ function DetailModal({ record, onClose }: { record: ES; onClose: () => void }) {
               ["Purchase From", record.purchaseFrom === "Bundle" ? `Bundle — ${record.bundleName}` : "Direct"],
               ["ICCID", record.iccid],
               ["Vendor Source Package Code", record.vendorCode],
-              ["Purchased Date / Time", record.purchasedDate],
+              ["Purchased Date / Time", formatDate(record.purchasedDate)],
             ]}
           </Section>
 
           <Section title="Payment Details">
             {[
               ["Order ID", record.orderId],
-              ["Payment Date / Time", record.paymentDate],
+              ["Payment Date / Time", formatDate(record.paymentDate)],
               ["Payment Method", record.paymentMethod],
               ["Subtotal", record.subtotal],
               ["Total", record.total],
@@ -190,7 +196,7 @@ function DetailModal({ record, onClose }: { record: ES; onClose: () => void }) {
               {[...record.statusLog].reverse().map((entry, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                   <StatusBadge status={entry.status} />
-                  <span className="text-xs text-slate-500 mt-0.5">{entry.dateTime}</span>
+                  <span className="text-xs text-slate-500 mt-0.5">{formatDate(entry.dateTime)}</span>
                 </div>
               ))}
             </div>
@@ -206,6 +212,18 @@ export function ESim() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<ES | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = mockEsim.filter((r) => {
     const q = search.toLowerCase();
@@ -217,7 +235,10 @@ export function ESim() {
     return matchSearch && matchStatus;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, "purchasedDate", sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -232,14 +253,15 @@ export function ESim() {
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
-          <select
+          <FilterDropdown
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Statuses</option>
-            {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(value) => { setStatusFilter(value); setPage(1); }}
+            placeholder="All Statuses"
+            options={[
+              { label: "All Statuses", value: "" },
+              ...ALL_STATUSES.map((s) => ({ label: s, value: s })),
+            ]}
+          />
         }
       />
 
@@ -251,10 +273,15 @@ export function ESim() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["User Account", "Order ID", "Product Name", "Purchase From", "Purchased Date/Time"].map((h) => (
+                {["User Account", "Order ID", "Product Name", "Purchase From"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("purchasedDate")}>
+                  <span className="inline-flex items-center gap-1">Purchased Date/Time<SortIndicator active={sortKey === "purchasedDate"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -266,7 +293,7 @@ export function ESim() {
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                     {r.purchaseFrom === "Bundle" ? `Bundle — ${r.bundleName}` : "Direct"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.purchasedDate}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.purchasedDate)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={r.status} />
                   </td>

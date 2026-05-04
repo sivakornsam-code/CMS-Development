@@ -2,10 +2,16 @@ import { useState } from "react";
 import { X, Package, Plus } from "lucide-react";
 import { mockProducts } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
+const STATUS_PRIORITY = ["Display", "Hide"];
+type SortKey = "status" | "created" | "updated";
+type SortDir = "asc" | "desc";
 
 type Product = typeof mockProducts[0];
 
@@ -29,12 +35,12 @@ function CategoryBadge({ cat }: { cat: string }) {
 function ProductDetailModal({ product, onClose, onEdit }: { product: Product; onClose: () => void; onEdit: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Product Detail</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
-        <div className="p-5 space-y-3">
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
               <Package size={18} className="text-blue-600" />
@@ -52,8 +58,8 @@ function ProductDetailModal({ product, onClose, onEdit }: { product: Product; on
             ["Short Description", "Premium bundle with multiple included services"],
             ["Action Type", "Issue Product + Voucher"],
             ["Price", "฿2,000"],
-            ["Created", product.created],
-            ["Updated", product.updated],
+            ["Created", formatDate(product.created)],
+            ["Updated", formatDate(product.updated)],
           ].map(([label, value]) => (
             <div key={label} className="flex items-start justify-between gap-4">
               <span className="text-xs text-slate-500 shrink-0">{label}</span>
@@ -61,7 +67,7 @@ function ProductDetailModal({ product, onClose, onEdit }: { product: Product; on
             </div>
           ))}
         </div>
-        <div className="flex gap-2 px-5 py-4 border-t border-slate-100">
+        <div className="flex gap-2 px-5 py-4 border-t border-slate-100 shrink-0">
           <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Close</button>
           <button onClick={onEdit} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">Edit Product</button>
         </div>
@@ -83,7 +89,7 @@ function ProductFormModal({ product, onClose, onSave, title }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -184,6 +190,18 @@ export function ProductList() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = products.filter(p => {
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
@@ -192,7 +210,10 @@ export function ProductList() {
     return matchSearch && matchCat && matchStatus;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, sortKey, sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -213,17 +234,25 @@ export function ProductList() {
         onCreate={() => setShowCreate(true)}
         extraFilters={
           <>
-            <select value={catFilter} onChange={e => { setCatFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">All Categories</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">All Status</option>
-              <option value="Display">Display</option>
-              <option value="Hide">Hide</option>
-            </select>
+            <FilterDropdown
+              value={catFilter}
+              onChange={(value) => { setCatFilter(value); setPage(1); }}
+              placeholder="All Categories"
+              options={[
+                { label: "All Categories", value: "" },
+                ...categories.map((c) => ({ label: c, value: c })),
+              ]}
+            />
+            <FilterDropdown
+              value={statusFilter}
+              onChange={(value) => { setStatusFilter(value); setPage(1); }}
+              placeholder="All Status"
+              options={[
+                { label: "All Status", value: "" },
+                { label: "Display", value: "Display" },
+                { label: "Hide", value: "Hide" },
+              ]}
+            />
           </>
         }
       />
@@ -236,10 +265,18 @@ export function ProductList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Product Code", "Category", "Product Name", "Created", "Updated"].map(h => (
+                {["Product Code", "Category", "Product Name"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
+                  <span className="inline-flex items-center gap-1">Created<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
+                </th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
+                  <span className="inline-flex items-center gap-1">Updated<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
                 <th className="sticky right-0 w-24 bg-slate-50 border-l border-slate-100 z-10 text-right text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -249,8 +286,8 @@ export function ProductList() {
                   <td className="px-4 py-3 text-xs font-mono text-slate-600">{p.code}</td>
                   <td className="px-4 py-3"><CategoryBadge cat={p.category} /></td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800">{p.name}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{p.created}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{p.updated}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.created)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.updated)}</td>
                   <td className="sticky right-24 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={p.status} />
                   </td>

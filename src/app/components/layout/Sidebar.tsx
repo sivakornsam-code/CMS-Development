@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import {
   LayoutDashboard,
@@ -50,6 +50,14 @@ interface NavSection {
   icon: React.ReactNode;
   items: NavItem[];
 }
+
+const DEFAULT_COLLAPSED_SECTIONS = new Set([
+  "Dashboard",
+  "Product Management",
+  "External Management",
+  "App Settings",
+  "System",
+]);
 
 const navSections: NavSection[] = [
   {
@@ -119,7 +127,15 @@ const navSections: NavSection[] = [
 function NavSection({ section }: { section: NavSection }) {
   const location = useLocation();
   const hasActive = section.items.some((item) => location.pathname === item.path);
-  const [open, setOpen] = useState(hasActive || true);
+  const [open, setOpen] = useState(
+    hasActive || !DEFAULT_COLLAPSED_SECTIONS.has(section.section),
+  );
+
+  useEffect(() => {
+    if (hasActive) {
+      setOpen(true);
+    }
+  }, [hasActive]);
 
   return (
     <div>

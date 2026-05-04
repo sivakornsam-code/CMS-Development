@@ -2,10 +2,15 @@ import { useState } from "react";
 import { X, Tag, Upload, Plus } from "lucide-react";
 import { mockVouchers, mockProducts } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
+const STATUS_PRIORITY = ["Active", "Inactive"];
+type SortKey = "status" | "updated" | "created";
+type SortDir = "asc" | "desc";
 
 type Voucher = typeof mockVouchers[0];
 
@@ -14,12 +19,12 @@ const actionTypes = ["Issue Product + Voucher", "Issue Voucher", "Track Only"];
 function VoucherDetailModal({ voucher, onClose, onEdit }: { voucher: Voucher; onClose: () => void; onEdit: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Voucher Component Detail</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
-        <div className="p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <div>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Overview</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
@@ -92,7 +97,7 @@ function VoucherDetailModal({ voucher, onClose, onEdit }: { voucher: Voucher; on
             </div>
           </div>
         </div>
-        <div className="flex gap-2 px-5 py-4 border-t border-slate-100">
+        <div className="flex gap-2 px-5 py-4 border-t border-slate-100 shrink-0">
           <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Close</button>
           <button onClick={onEdit} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">Edit Voucher</button>
         </div>
@@ -115,7 +120,7 @@ function VoucherFormModal({ voucher, onClose, onSave, title }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -245,10 +250,24 @@ export function VoucherComponent() {
   const [editVoucher, setEditVoucher] = useState<Voucher | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = vouchers.filter(v => !search || v.name.toLowerCase().includes(search.toLowerCase()) || v.code.toLowerCase().includes(search.toLowerCase()));
-
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, sortKey, sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -277,10 +296,18 @@ export function VoucherComponent() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Code", "Display Name", "Action Type", "Source Product", "Updated", "Created"].map(h => (
+                {["Code", "Display Name", "Action Type", "Source Product"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
+                  <span className="inline-flex items-center gap-1">Updated<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
+                </th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
+                  <span className="inline-flex items-center gap-1">Created<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
                 <th className="sticky right-0 w-24 bg-slate-50 border-l border-slate-100 z-10 text-right text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -291,8 +318,8 @@ export function VoucherComponent() {
                   <td className="px-4 py-3 text-xs font-medium text-slate-800">{v.name}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{v.actionType}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{v.source}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{v.updated}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{v.created}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(v.updated)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(v.created)}</td>
                   <td className="sticky right-24 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={v.status} />
                   </td>

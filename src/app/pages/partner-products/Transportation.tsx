@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { X, DollarSign, Car, MapPin, Pencil, Check } from "lucide-react";
 import { mockTransportation } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, formatDateTime, sortByStatus, sortByDatetime, sortByDatetimePair } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
 
@@ -11,6 +14,7 @@ type TR = typeof mockTransportation[0];
 
 const ALL_STATUSES = ["Pending", "Assigned", "Cancelled", "Complete"];
 const ALL_TYPES = ["Airport Transfer", "Chauffeur"];
+const STATUS_PRIORITY = ["Pending", "Assigned", "Complete", "Cancelled"];
 
 function MiniDash() {
   const totalRevenue = mockTransportation
@@ -241,9 +245,9 @@ function DetailModal({ record, onClose }: { record: TR; onClose: () => void }) {
 
           <Section title="Date / Time Details">
             {[
-              ["Pick-up Date", record.pickUpDate],
+              ["Pick-up Date", formatDate(record.pickUpDate)],
               ["Pick-up Time", record.pickUpTime],
-              ["Drop-off Date", record.dropOffDate],
+              ["Drop-off Date", formatDate(record.dropOffDate)],
             ]}
           </Section>
 
@@ -307,7 +311,7 @@ function DetailModal({ record, onClose }: { record: TR; onClose: () => void }) {
           <Section title="Payment Details">
             {[
               ["Order ID",        record.orderId],
-              ["Payment Date",    record.paymentDate],
+              ["Payment Date",    formatDate(record.paymentDate)],
               ["Payment Method",  record.paymentMethod],
               ["Subtotal",        record.subtotal],
               ["Total",           record.total],
@@ -316,8 +320,8 @@ function DetailModal({ record, onClose }: { record: TR; onClose: () => void }) {
 
           <Section title="Booking Log">
             {[
-              ["Created",      record.created],
-              ["Last Updated", record.updated],
+              ["Created",      formatDate(record.created)],
+              ["Last Updated", formatDate(record.updated)],
             ]}
           </Section>
         </div>
@@ -364,6 +368,9 @@ function BookingTabs({ value, onChange, pendingCount }: {
   );
 }
 
+type SortKey = "status" | "pickUpDateTime" | "created" | "updated";
+type SortDir = "asc" | "desc";
+
 export function Transportation() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -371,6 +378,18 @@ export function Transportation() {
   const [bookingTab, setBookingTab] = useState<"all" | "pending">("all");
   const [selected, setSelected] = useState<TR | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const pendingCount = mockTransportation.filter((r) => r.status === "Pending").length;
 
@@ -389,7 +408,14 @@ export function Transportation() {
     return matchSearch && matchTab && matchStatus && matchType;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = (() => {
+    if (!sortKey) return filtered;
+    if (sortKey === "status") return sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir);
+    if (sortKey === "pickUpDateTime") return sortByDatetimePair(filtered, "pickUpDate", "pickUpTime", sortDir);
+    return sortByDatetime(filtered, sortKey, sortDir);
+  })();
+
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -407,22 +433,24 @@ export function Transportation() {
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <>
-            <select
+            <FilterDropdown
               value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Types</option>
-              {ALL_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <select
+              onChange={(value) => { setTypeFilter(value); setPage(1); }}
+              placeholder="All Types"
+              options={[
+                { label: "All Types", value: "" },
+                ...ALL_TYPES.map((t) => ({ label: t, value: t })),
+              ]}
+            />
+            <FilterDropdown
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+              onChange={(value) => { setStatusFilter(value); setPage(1); }}
+              placeholder="All Statuses"
+              options={[
+                { label: "All Statuses", value: "" },
+                ...ALL_STATUSES.map((s) => ({ label: s, value: s })),
+              ]}
+            />
           </>
         }
       />
@@ -435,10 +463,36 @@ export function Transportation() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["User Account", "Order ID", "Service Type", "Booking ID", "Passenger", "Pick-up Date", "Pick-up Time", "Drop-off Date", "Pick-up Location", "Drop-off Area", "Driver", "Created", "Updated"].map((h) => (
+                {["User Account", "Order ID", "Service Type", "Booking ID", "Passenger"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("pickUpDateTime")}>
+                  <span className="inline-flex items-center gap-1">
+                    Pick-up Date &amp; Time
+                    <SortIndicator active={sortKey === "pickUpDateTime"} direction={sortDir} />
+                  </span>
+                </th>
+                {["Drop-off Date", "Pick-up Location", "Drop-off Area", "Driver"].map((h) => (
+                  <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
+                ))}
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
+                  <span className="inline-flex items-center gap-1">
+                    Created
+                    <SortIndicator active={sortKey === "created"} direction={sortDir} />
+                  </span>
+                </th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
+                  <span className="inline-flex items-center gap-1">
+                    Updated
+                    <SortIndicator active={sortKey === "updated"} direction={sortDir} />
+                  </span>
+                </th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">
+                    Status
+                    <SortIndicator active={sortKey === "status"} direction={sortDir} />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -449,14 +503,13 @@ export function Transportation() {
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.serviceType}</td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800 whitespace-nowrap">{r.bookingId}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.passengerName}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.pickUpDate}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.pickUpTime}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.dropOffDate}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDateTime(r.pickUpDate, r.pickUpTime)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.dropOffDate)}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap max-w-[160px] truncate">{r.pickUpLocation}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.dropOffArea}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.driverName || "—"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.created}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.updated}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.created)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.updated)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={r.status} />
                   </td>

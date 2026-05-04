@@ -2,10 +2,16 @@ import { useState } from "react";
 import { X, Download } from "lucide-react";
 import { mockTDAC } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
+const STATUS_PRIORITY = ["Active", "Expired"];
+type SortKey = "status" | "submittedAt" | "updatedAt";
+type SortDir = "asc" | "desc";
 
 type TDAC = typeof mockTDAC[0];
 
@@ -54,7 +60,7 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Arrival Information</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
               {[
-                ["Date of Arrival", record.arrivalDate],
+                ["Date of Arrival", formatDate(record.arrivalDate)],
                 ["Flight No. / Vehicle No.", record.arrivalFlightNo],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4">
@@ -70,7 +76,7 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Departure Information</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
               {[
-                ["Date of Departure", record.departureDate],
+                ["Date of Departure", formatDate(record.departureDate)],
                 ["Flight No. / Vehicle No.", record.departureFlightNo],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4">
@@ -86,8 +92,8 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Submission</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
               {[
-                ["Submitted Date", record.submittedAt],
-                ["Updated Date / Time", record.updatedAt],
+                ["Submitted Date", formatDate(record.submittedAt)],
+                ["Updated Date / Time", formatDate(record.updatedAt)],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4">
                   <span className="text-xs text-slate-500 shrink-0">{label}</span>
@@ -113,6 +119,18 @@ export function TDACList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<TDAC | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = mockTDAC.filter((r) => {
     const q = search.toLowerCase();
@@ -123,8 +141,10 @@ export function TDACList() {
     const matchStatus = !statusFilter || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
-
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, sortKey, sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -136,15 +156,16 @@ export function TDACList() {
         showPeriod
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
-          <select
+          <FilterDropdown
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Expired">Expired</option>
-          </select>
+            onChange={(value) => { setStatusFilter(value); setPage(1); }}
+            placeholder="All Statuses"
+            options={[
+              { label: "All Statuses", value: "" },
+              { label: "Active", value: "Active" },
+              { label: "Expired", value: "Expired" },
+            ]}
+          />
         }
       />
 
@@ -156,10 +177,18 @@ export function TDACList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Email", "Name (TDAC)", "Arrival Card No.", "Nationality", "Arrival Date", "Departure Date", "Submitted Date/Time", "Updated Date/Time"].map((h) => (
+                {["Email", "Name (TDAC)", "Arrival Card No.", "Nationality", "Arrival Date", "Departure Date"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("submittedAt")}>
+                  <span className="inline-flex items-center gap-1">Submitted Date/Time<SortIndicator active={sortKey === "submittedAt"} direction={sortDir} /></span>
+                </th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updatedAt")}>
+                  <span className="inline-flex items-center gap-1">Updated Date/Time<SortIndicator active={sortKey === "updatedAt"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -173,10 +202,10 @@ export function TDACList() {
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.name}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap font-mono">{r.arrivalCardNo}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.nationality}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.arrivalDate}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.departureDate}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.submittedAt}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.updatedAt}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.arrivalDate)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.departureDate)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.submittedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.updatedAt)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={r.status} />
                   </td>

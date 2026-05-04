@@ -2,10 +2,13 @@ import { useState } from "react";
 import { X, Link2, MousePointerClick, UserCheck, ShoppingBag, TrendingUp } from "lucide-react";
 import { mockAffiliateLinks, mockPartners, formatNumber } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { sortByStatus } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
+const STATUS_PRIORITY = ["Active", "Inactive"];
 
 type AffLink = typeof mockAffiliateLinks[0];
 
@@ -24,12 +27,12 @@ function MetricPill({ icon, label, value }: { icon: React.ReactNode; label: stri
 function LinkDetailModal({ link, onClose }: { link: AffLink; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Affiliate Link Detail</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
-        <div className="p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <div>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Overview</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
@@ -63,7 +66,7 @@ function LinkDetailModal({ link, onClose }: { link: AffLink; onClose: () => void
             </div>
           </div>
         </div>
-        <div className="px-5 py-4 border-t border-slate-100">
+        <div className="px-5 py-4 border-t border-slate-100 shrink-0">
           <button onClick={onClose} className="w-full py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Close</button>
         </div>
       </div>
@@ -80,7 +83,7 @@ function CreateLinkModal({ onClose, onSave }: { onClose: () => void; onSave: (v:
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Create Affiliate Link</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -151,10 +154,22 @@ export function AffiliateLinkManagement() {
   const [viewLink, setViewLink] = useState<AffLink | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
+  const [sortActive, setSortActive] = useState(false);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSortStatus() {
+    if (sortActive) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortActive(true);
+      setSortDir("asc");
+    }
+    setPage(1);
+  }
 
   const filtered = links.filter(l => !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.partner.toLowerCase().includes(search.toLowerCase()));
-
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = sortActive ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir) : filtered;
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -185,7 +200,9 @@ export function AffiliateLinkManagement() {
                 {["Link Name", "Partner", "Tracking Code", "Clicks", "Registrations", "Purchases", "Conv. Rate"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={handleSortStatus}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortActive} direction={sortDir} /></span>
+                </th>
                 <th className="sticky right-0 w-24 bg-slate-50 border-l border-slate-100 z-10 text-right text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Actions</th>
               </tr>
             </thead>

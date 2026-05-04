@@ -2,8 +2,11 @@ import { useState } from "react";
 import { X, Ticket, Users, ShoppingBag, LayoutGrid, Pencil, Check, Image as ImageIcon } from "lucide-react";
 import { mockFastPass } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
 
@@ -19,7 +22,7 @@ const AIRPORTS = [
 
 function AirportTabs({ value, onChange }: { value: string; onChange: (code: string) => void }) {
   return (
-    <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto">
+    <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto overflow-y-hidden mb-4">
       {AIRPORTS.map((a) => {
         const isActive = value === a.code;
         return (
@@ -42,12 +45,6 @@ function AirportTabs({ value, onChange }: { value: string; onChange: (code: stri
 
 type FP = typeof mockFastPass[0];
 
-function formatHistoryDate(dt: string) {
-  const [datePart, timePart] = dt.split(" ");
-  const [year, month, day] = datePart.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${parseInt(day)} ${months[parseInt(month) - 1]} ${year}, ${timePart}`;
-}
 
 function getFastPassHistory(record: FP) {
   const detailsUpdated = record.history.find((h) => h.event !== "FastPass verified");
@@ -59,7 +56,16 @@ function getFastPassHistory(record: FP) {
   ].filter(Boolean) as { event: string; dateTime: string }[];
 }
 
+function getFastPassHistoryDotClass(event: string) {
+  if (event === "FastPass verified") return "bg-emerald-500";
+  if (event === "FastPass details updated") return "bg-orange-400";
+  return "bg-slate-300";
+}
+
 const ALL_STATUSES = ["Ready to use", "Redeemed", "Expired"];
+const STATUS_PRIORITY = ["Ready to use", "Redeemed", "Expired"];
+type SortKey = "status" | "flightDateTime";
+type SortDir = "asc" | "desc";
 
 function MiniDash() {
   const total = mockFastPass.length;
@@ -91,16 +97,114 @@ function MiniDash() {
   );
 }
 
+function PassportDetailPanel() {
+  return (
+    <div>
+      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Passport Detail</h4>
+      <div className="bg-slate-50 rounded-xl p-4 flex flex-col gap-3 w-full">
+        <p className="text-xs text-slate-500">Passport Cover</p>
+        <div className="w-full">
+          <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center gap-2 overflow-hidden">
+            <ImageIcon size={56} className="text-slate-300" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(record.status);
+  const isReadyToUse = status === "Ready to use";
+
+  const personalDetailsSection = (
+    <Section title="Personal Details">
+      {[
+        ["Full Name", record.fullName],
+        ["Passport Number", record.passport],
+        ["Nationality", record.nationality],
+        ["Date of Birth", record.dob],
+        ["Gender", record.gender],
+      ]}
+    </Section>
+  );
+
+  const contactInfoSection = (
+    <Section title="Contact Info">
+      {[["User Account", record.user]]}
+    </Section>
+  );
+
+  const remainingInfoSections = (
+    <>
+      <Section title="Flight Information">
+        {[
+          ["Airport", record.airport],
+          ["Flight No.", record.flightNo],
+          ["Arrival / Departure", record.arrivalDeparture],
+          ["Flight Date / Time", formatDate(record.flightDateTime)],
+        ]}
+      </Section>
+
+      <Section title="Additional Services">
+        {[
+          ["Travelers in Party", String(record.travelers)],
+          ["Golf Cart", record.golfCart ? "Yes" : "No"],
+          ["Butler Service", record.butler ? "Yes" : "No"],
+          ...(record.butler ? [["Butler Amount", String(record.butlerAmount)] as [string, string]] : []),
+        ]}
+      </Section>
+
+      <Section title="Order Details">
+        {[
+          ["Order ID", record.orderId],
+          ["FastPass ID", record.fastpassId],
+          ["Purchase Date", formatDate(record.purchaseDate)],
+          ["Purchase From", record.purchaseFrom === "Bundle" ? `Bundle — ${(record as any).bundleName}` : "Direct"],
+        ]}
+      </Section>
+    </>
+  );
+
+  const historyLogSection = (
+    <div>
+      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">History Log</h4>
+      <div className="space-y-2">
+        {getFastPassHistory(record).map((h, i) => (
+          <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+            <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${getFastPassHistoryDotClass(h.event)}`} />
+            <div>
+              <p className="text-xs font-medium text-slate-800">{h.event}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{formatDate(h.dateTime)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const infoContent = (
+    <div className="space-y-5">
+      {personalDetailsSection}
+      {isReadyToUse && (
+        <div className="lg:hidden">
+          <PassportDetailPanel />
+        </div>
+      )}
+      {contactInfoSection}
+      {remainingInfoSections}
+      {historyLogSection}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl shadow-xl max-h-[90vh] flex flex-col"
+        className={`bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col ${isReadyToUse ? "sm:max-w-xl lg:max-w-4xl" : "sm:max-w-xl"}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">FastPass Detail</h3>
@@ -117,103 +221,48 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          {/* Status */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">Status</span>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
-                >
-                  <Check size={11} /> Save
-                </button>
-              </div>
-            ) : (
-              <StatusBadge status={status} />
-            )}
-          </div>
+        {/* Status row */}
+        <div className="flex items-center gap-3 px-5 pt-4 shrink-0">
+          <span className="text-xs text-slate-500">Status</span>
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button
+                onClick={() => setEditing(false)}
+                className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
+              >
+                <Check size={11} /> Save
+              </button>
+            </div>
+          ) : (
+            <StatusBadge status={status} />
+          )}
+        </div>
 
-          <div className="mt-5 space-y-5">
-            <Section title="Personal Details">
-              {[
-                ["Full Name", record.fullName],
-                ["Passport Number", record.passport],
-                ["Nationality", record.nationality],
-                ["Date of Birth", record.dob],
-                ["Gender", record.gender],
-              ]}
-            </Section>
+        {/* Body */}
+        {isReadyToUse ? (
+          <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row min-h-0">
+            {/* Left column — all info */}
+            <div className="lg:flex-[4] lg:overflow-y-auto p-5 lg:border-r border-slate-100">
+              {infoContent}
+            </div>
 
-            {status === "Ready to use" && (
-              <div>
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Passport Detail</h4>
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-xs text-slate-500 mb-3">Passport Cover</p>
-                  <div className="w-full flex justify-center">
-                    <div className="w-64 max-w-full aspect-[3/4] rounded-xl border border-dashed border-slate-300 bg-white flex items-center justify-center">
-                      <ImageIcon size={42} className="text-slate-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <Section title="Contact Info">
-              {[["User Account", record.user]]}
-            </Section>
-
-            <Section title="Flight Information">
-              {[
-                ["Airport", record.airport],
-                ["Flight No.", record.flightNo],
-                ["Arrival / Departure", record.arrivalDeparture],
-                ["Flight Date / Time", record.flightDateTime],
-              ]}
-            </Section>
-
-            <Section title="Additional Services">
-              {[
-                ["Travelers in Party", String(record.travelers)],
-                ["Golf Cart", record.golfCart ? "Yes" : "No"],
-                ["Butler Service", record.butler ? "Yes" : "No"],
-                ...(record.butler ? [["Butler Amount", String(record.butlerAmount)] as [string, string]] : []),
-              ]}
-            </Section>
-
-            <Section title="Order Details">
-              {[
-                ["Order ID", record.orderId],
-                ["FastPass ID", record.fastpassId],
-                ["Purchase Date", record.purchaseDate],
-                ["Purchase From", record.purchaseFrom === "Bundle" ? `Bundle — ${(record as any).bundleName}` : "Direct"],
-              ]}
-            </Section>
-
-            <div>
-              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">History Log</h4>
-              <div className="space-y-2">
-                {getFastPassHistory(record).map((h, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800">{h.event}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{formatHistoryDate(h.dateTime)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {/* Right column — Passport Detail */}
+            <div className="hidden lg:block lg:flex-[3] lg:overflow-y-auto p-5">
+              <PassportDetailPanel />
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-5">
+            {infoContent}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -241,6 +290,18 @@ export function FastPass() {
   const [airportFilter, setAirportFilter] = useState("");
   const [selected, setSelected] = useState<FP | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = mockFastPass.filter((r) => {
     const q = search.toLowerCase();
@@ -255,10 +316,13 @@ export function FastPass() {
     return matchSearch && matchStatus && matchAirport;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, "flightDateTime", sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full">
       {selected && <DetailModal record={selected} onClose={() => setSelected(null)} />}
 
       <MiniDash />
@@ -272,14 +336,15 @@ export function FastPass() {
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
-          <select
+          <FilterDropdown
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Statuses</option>
-            {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(value) => { setStatusFilter(value); setPage(1); }}
+            placeholder="All Statuses"
+            options={[
+              { label: "All Statuses", value: "" },
+              ...ALL_STATUSES.map((s) => ({ label: s, value: s })),
+            ]}
+          />
         }
       />
 
@@ -291,10 +356,18 @@ export function FastPass() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["User Account", "Airport", "Flight No.", "Arr/Dep", "Flight Date/Time", "Full Name", "Passport", "Nationality", "Order ID", "FastPass ID"].map((h) => (
+                {["User Account", "Airport", "Flight No.", "Arr/Dep"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("flightDateTime")}>
+                  <span className="inline-flex items-center gap-1">Flight Date/Time<SortIndicator active={sortKey === "flightDateTime"} direction={sortDir} /></span>
+                </th>
+                {["Full Name", "Passport", "Nationality", "Order ID", "FastPass ID"].map((h) => (
+                  <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
+                ))}
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -304,7 +377,7 @@ export function FastPass() {
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.airport}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.flightNo}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.arrivalDeparture}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.flightDateTime}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.flightDateTime)}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.fullName}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap font-mono">{r.passport}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.nationality}</td>

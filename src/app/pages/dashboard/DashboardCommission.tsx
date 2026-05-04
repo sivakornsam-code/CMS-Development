@@ -2,9 +2,16 @@ import { useState } from "react";
 import { DollarSign, Clock, Plus, X, Upload, ChevronDown } from "lucide-react";
 import { commissionPayments, formatCurrency } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const entities = ["Bangkok Air Services", "AIS eSIM", "Indian TTT", "TrueMove H", "Muang Thai Life", "AOT FastPass", "Agoda Travel", "KKday Thailand"];
+const FLOW_PRIORITY = ["Payout", "Return"];
+
+type SortKey = "flow" | "updated";
+type SortDir = "asc" | "desc";
 
 function CreatePaymentModal({ onClose }: { onClose: () => void }) {
   const [flow, setFlow] = useState("Payout");
@@ -92,10 +99,26 @@ function CreatePaymentModal({ onClose }: { onClose: () => void }) {
 
 export function DashboardCommission() {
   const [showModal, setShowModal] = useState(false);
+  const [entityFilter, setEntityFilter] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "flow" ? "asc" : "desc");
+    }
+  }
 
   const totalPaid = commissionPayments.filter(p => p.flow === "Payout").reduce((a, p) => a + p.amount, 0);
   const totalReturn = commissionPayments.filter(p => p.flow === "Return").reduce((a, p) => a + p.amount, 0);
   const remainingBalance = 9984400 - totalPaid + totalReturn;
+  const filtered = commissionPayments.filter((payment) => !entityFilter || payment.name === entityFilter);
+  const filteredPayments = !sortKey ? filtered
+    : sortKey === "flow" ? sortByStatus(filtered, "flow", FLOW_PRIORITY, sortDir)
+    : sortByDatetime(filtered, "updatedAt", sortDir);
 
   return (
     <div className="space-y-5">
@@ -154,32 +177,49 @@ export function DashboardCommission() {
         </div>
 
         <FilterBar showSearch={false} showPeriod={true} extraFilters={
-          <select className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">All Entities</option>
-            {entities.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
+          <FilterDropdown
+            value={entityFilter}
+            onChange={setEntityFilter}
+            placeholder="All Entities"
+            options={[
+              { label: "All Entities", value: "" },
+              ...entities.map((e) => ({ label: e, value: e })),
+            ]}
+          />
         } />
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100">
-                {["Date", "Name", "Flow", "Amount", "Updated"].map(h => (
-                  <th key={h} className="text-left text-xs font-medium text-slate-400 pb-2 pr-4">{h}</th>
-                ))}
+                <th className="text-left text-xs font-medium text-slate-400 pb-2 pr-4">Date</th>
+                <th className="text-left text-xs font-medium text-slate-400 pb-2 pr-4">Name</th>
+                <th className="text-left text-xs font-medium text-slate-400 pb-2 pr-4 cursor-pointer select-none hover:text-slate-600 whitespace-nowrap" onClick={() => handleSort("flow")}>
+                  <span className="inline-flex items-center gap-1">
+                    Flow
+                    <SortIndicator active={sortKey === "flow"} direction={sortDir} />
+                  </span>
+                </th>
+                <th className="text-left text-xs font-medium text-slate-400 pb-2 pr-4">Amount</th>
+                <th className="text-left text-xs font-medium text-slate-400 pb-2 pr-4 cursor-pointer select-none hover:text-slate-600 whitespace-nowrap" onClick={() => handleSort("updated")}>
+                  <span className="inline-flex items-center gap-1">
+                    Updated
+                    <SortIndicator active={sortKey === "updated"} direction={sortDir} />
+                  </span>
+                </th>
                 <th className="text-right text-xs font-medium text-slate-400 pb-2">Action</th>
               </tr>
             </thead>
             <tbody>
-              {commissionPayments.map((p) => (
+              {filteredPayments.map((p) => (
                 <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="py-2.5 pr-4 text-xs text-slate-600">{p.date}</td>
+                  <td className="py-2.5 pr-4 text-xs text-slate-600">{formatDate(p.date)}</td>
                   <td className="py-2.5 pr-4 text-xs font-medium text-slate-800">{p.name}</td>
                   <td className="py-2.5 pr-4">
                     <StatusBadge status={p.flow} />
                   </td>
                   <td className="py-2.5 pr-4 text-xs text-slate-700 font-medium">{formatCurrency(p.amount)}</td>
-                  <td className="py-2.5 pr-4 text-xs text-slate-500">{p.updatedAt}</td>
+                  <td className="py-2.5 pr-4 text-xs text-slate-500">{formatDate(p.updatedAt)}</td>
                   <td className="py-2.5 text-right">
                     <button className="text-xs text-blue-600 hover:underline">Edit</button>
                   </td>

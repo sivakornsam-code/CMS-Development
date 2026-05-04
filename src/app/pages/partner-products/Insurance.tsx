@@ -2,14 +2,20 @@ import { useState } from "react";
 import { X, Pencil, Check, Umbrella, FileText, CheckCircle, XCircle } from "lucide-react";
 import { mockInsurance } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
 
 type INS = typeof mockInsurance[0];
 
 const ALL_STATUSES = ["Not submitted", "Active", "Rejected"];
+const STATUS_PRIORITY = ["Not submitted", "Active", "Rejected"];
+type SortKey = "status" | "purchasedDate";
+type SortDir = "asc" | "desc";
 
 function MiniDash() {
   const totalIssued = mockInsurance.length;
@@ -159,8 +165,8 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
               ["User Account", record.user],
               ["Product Name", record.productName],
               ["Purchase From", `Bundle — ${record.bundleName}`],
-              ["Purchased Date", record.purchasedDate],
-              ["Submission Date", record.submissionDate ?? "Not submitted"],
+              ["Purchased Date", formatDate(record.purchasedDate)],
+              ["Submission Date", record.submissionDate ? formatDate(record.submissionDate) : "Not submitted"],
               ["Coverage Period", record.coveragePeriod],
               ["Reference ID", record.referenceId ?? "—"],
             ]}
@@ -179,12 +185,12 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
           <Section title="Passport Info">
             {[
               ["Passport Number", record.passportNo],
-              ["Passport Expiration Date", record.passportExpiry],
+              ["Passport Expiration Date", formatDate(record.passportExpiry)],
             ]}
           </Section>
 
           <Section title="Trip Information">
-            {[["Arrival Date to Thailand", record.arrivalDate]]}
+            {[["Arrival Date to Thailand", formatDate(record.arrivalDate)]]}
           </Section>
 
           <Section title="Contact Information">
@@ -197,7 +203,7 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
           <Section title="Payment Details">
             {[
               ["Order ID", record.orderId],
-              ["Payment Date / Time", record.paymentDate],
+              ["Payment Date / Time", formatDate(record.paymentDate)],
               ["Payment Method", record.paymentMethod],
               ["Subtotal", record.subtotal],
               ["Total", record.total],
@@ -210,7 +216,7 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
               {[...record.statusLog].reverse().map((entry, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                   <StatusBadge status={entry.status} />
-                  <span className="text-xs text-slate-500 mt-0.5">{entry.dateTime}</span>
+                  <span className="text-xs text-slate-500 mt-0.5">{formatDate(entry.dateTime)}</span>
                 </div>
               ))}
             </div>
@@ -226,6 +232,18 @@ export function Insurance() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<INS | null>(null);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
+    }
+    setPage(1);
+  }
 
   const filtered = mockInsurance.filter((r) => {
     const q = search.toLowerCase();
@@ -237,7 +255,10 @@ export function Insurance() {
     return matchSearch && matchStatus;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = !sortKey ? filtered
+    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+    : sortByDatetime(filtered, "purchasedDate", sortDir);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -252,14 +273,15 @@ export function Insurance() {
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
-          <select
+          <FilterDropdown
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Statuses</option>
-            {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(value) => { setStatusFilter(value); setPage(1); }}
+            placeholder="All Statuses"
+            options={[
+              { label: "All Statuses", value: "" },
+              ...ALL_STATUSES.map((s) => ({ label: s, value: s })),
+            ]}
+          />
         }
       />
 
@@ -271,10 +293,15 @@ export function Insurance() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["User Account", "Order ID", "Product Name", "Purchase From", "Purchased Date/Time"].map((h) => (
+                {["User Account", "Order ID", "Product Name", "Purchase From"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("purchasedDate")}>
+                  <span className="inline-flex items-center gap-1">Purchased Date/Time<SortIndicator active={sortKey === "purchasedDate"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -284,7 +311,7 @@ export function Insurance() {
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.orderId}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.productName}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">Bundle — {r.bundleName}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.purchasedDate}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.purchasedDate)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={r.status} />

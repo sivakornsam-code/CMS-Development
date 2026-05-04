@@ -2,10 +2,14 @@ import { useState } from "react";
 import { X, ShoppingCart, DollarSign, Activity, AlertCircle, Check } from "lucide-react";
 import { mockUsers, mockOrders } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterDropdown } from "../../components/ui/FilterDropdown";
+import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatus } from "../../components/ui/utils";
 
 const PAGE_SIZE = 5;
+const STATUS_PRIORITY = ["Active", "Inactive"];
 
 type User = typeof mockUsers[0] & { status: string };
 
@@ -97,7 +101,7 @@ function UserDetailModal({
         />
       )}
       <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-        <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">User Detail</h3>
@@ -131,7 +135,7 @@ function UserDetailModal({
               <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
                 {[
                   ["Email", user.email],
-                  ["Registered Date", user.registered],
+                  ["Registered Date", formatDate(user.registered)],
                   ["User Type", user.userType],
                   ["Partner Source", user.partner],
                   ["TDAC Status", user.tdac],
@@ -229,7 +233,7 @@ function UserDetailModal({
                       <div className="text-xs font-medium text-slate-800">
                         {a.action} — <span className="text-slate-600">{a.product}</span>
                       </div>
-                      <div className="text-xs text-slate-400 mt-0.5">{a.date}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{formatDate(a.date)}</div>
                     </div>
                   </div>
                 ))}
@@ -250,6 +254,18 @@ export function UserAccount() {
   const [statusFilter, setStatusFilter] = useState("");
   const [tdacFilter, setTdacFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [sortActive, setSortActive] = useState(false);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSortStatus() {
+    if (sortActive) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortActive(true);
+      setSortDir("asc");
+    }
+    setPage(1);
+  }
 
   function handleStatusChange(email: string, status: string) {
     setUsers((prev) => prev.map((u) => (u.email === email ? { ...u, status } : u)));
@@ -266,7 +282,8 @@ export function UserAccount() {
     return matchSearch && matchType && matchStatus && matchTdac;
   });
 
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = sortActive ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir) : filtered;
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div>
@@ -285,33 +302,36 @@ export function UserAccount() {
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <>
-            <select
+            <FilterDropdown
               value={userTypeFilter}
-              onChange={(e) => { setUserTypeFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All User Types</option>
-              <option value="Organic">Organic</option>
-              <option value="Affiliate">Affiliate</option>
-            </select>
-            <select
+              onChange={(value) => { setUserTypeFilter(value); setPage(1); }}
+              placeholder="All User Types"
+              options={[
+                { label: "All User Types", value: "" },
+                { label: "Organic", value: "Organic" },
+                { label: "Affiliate", value: "Affiliate" },
+              ]}
+            />
+            <FilterDropdown
               value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <select
+              onChange={(value) => { setStatusFilter(value); setPage(1); }}
+              placeholder="All Statuses"
+              options={[
+                { label: "All Statuses", value: "" },
+                { label: "Active", value: "Active" },
+                { label: "Inactive", value: "Inactive" },
+              ]}
+            />
+            <FilterDropdown
               value={tdacFilter}
-              onChange={(e) => { setTdacFilter(e.target.value); setPage(1); }}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All TDAC Status</option>
-              <option value="Verified">Verified</option>
-              <option value="Pending">Pending</option>
-            </select>
+              onChange={(value) => { setTdacFilter(value); setPage(1); }}
+              placeholder="All TDAC Status"
+              options={[
+                { label: "All TDAC Status", value: "" },
+                { label: "Verified", value: "Verified" },
+                { label: "Pending", value: "Pending" },
+              ]}
+            />
           </>
         }
       />
@@ -327,7 +347,9 @@ export function UserAccount() {
                 {["Email", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status", "Registered Date"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Status</th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={handleSortStatus}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortActive} direction={sortDir} /></span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -343,7 +365,7 @@ export function UserAccount() {
                   <td className="px-4 py-3"><StatusBadge status={u.userType} /></td>
                   <td className="px-4 py-3 text-xs text-slate-600">{u.partner}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.tdac} /></td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{u.registered}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500">{formatDate(u.registered)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={u.status} />
                   </td>
