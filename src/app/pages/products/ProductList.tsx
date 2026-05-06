@@ -226,7 +226,7 @@ export function ProductList() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search product name..."
+        searchableFields={["Name", "Code"]}
         showPeriod={false}
         showCreate
         createLabel="Create Product"
@@ -258,9 +258,6 @@ export function ProductList() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} products</span>
-        </div>
         <div className="overflow-x-auto relative">
           <table className="w-full text-sm">
             <thead>

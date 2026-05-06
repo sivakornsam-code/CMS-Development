@@ -7,6 +7,7 @@ const periodOptions = ["All time", "Today", "Last 7 days", "Last 30 days", "This
 interface FilterBarProps {
   showSearch?: boolean;
   searchPlaceholder?: string;
+  searchableFields?: string[];
   showPeriod?: boolean;
   showCreate?: boolean;
   createLabel?: string;
@@ -20,7 +21,8 @@ interface FilterBarProps {
 
 export function FilterBar({
   showSearch = true,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Search",
+  searchableFields,
   showPeriod = true,
   showCreate = false,
   createLabel = "Create",
@@ -33,10 +35,14 @@ export function FilterBar({
 }: FilterBarProps) {
   const [period, setPeriod] = useState("All time");
   const [search, setSearch] = useState("");
+  const [focused, setFocused] = useState(false);
+
   const handlePeriod = (p: string) => {
     setPeriod(p);
     onPeriodChange?.(p);
   };
+
+  const showTooltip = focused && !search && !!searchableFields?.length;
 
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -48,8 +54,19 @@ export function FilterBar({
             placeholder={searchPlaceholder}
             value={search}
             onChange={(e) => { setSearch(e.target.value); onSearch?.(e.target.value); }}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             className="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg w-52 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          {showTooltip && (
+            <div className="absolute bottom-full left-0 mb-1.5 z-50 bg-white border border-slate-200 rounded-lg shadow-md px-3 py-2 w-max max-w-xs pointer-events-none">
+              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide mb-1">Search by</p>
+              <p className="text-xs text-slate-700 leading-relaxed">
+                {searchableFields!.join(", ")}
+              </p>
+              <div className="absolute top-full left-4 w-2 h-2 bg-white border-b border-r border-slate-200 rotate-45 -mt-1" />
+            </div>
+          )}
         </div>
       )}
 

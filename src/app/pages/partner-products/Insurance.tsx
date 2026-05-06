@@ -5,10 +5,8 @@ import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
-import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
-
-const PAGE_SIZE = 5;
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 
 type INS = typeof mockInsurance[0];
 
@@ -232,8 +230,8 @@ export function Insurance() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<INS | null>(null);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("purchasedDate");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -255,8 +253,8 @@ export function Insurance() {
     return matchSearch && matchStatus;
   });
 
-  const sorted = !sortKey ? filtered
-    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+  const sorted = sortKey === "status"
+    ? sortByStatusWithDate(filtered, "status", STATUS_PRIORITY, sortDir, "purchasedDate")
     : sortByDatetime(filtered, "purchasedDate", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -268,7 +266,7 @@ export function Insurance() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Order ID or user email…"
+        searchableFields={["Order ID", "Email"]}
         showPeriod
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
@@ -286,11 +284,17 @@ export function Insurance() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} records</span>
-        </div>
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "970px" }}>
+            <colgroup>
+              {/* Fixed column widths — intentional, do not remove */}
+              <col style={{ width: "180px" }} />{/* User Account */}
+              <col style={{ width: "120px" }} />{/* Order ID */}
+              <col style={{ width: "200px" }} />{/* Product Name */}
+              <col style={{ width: "180px" }} />{/* Purchase From */}
+              <col style={{ width: "150px" }} />{/* Purchased Date/Time */}
+              <col style={{ width: "140px" }} />{/* Status */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 {["User Account", "Order ID", "Product Name", "Purchase From"].map((h) => (
@@ -307,9 +311,9 @@ export function Insurance() {
             <tbody>
               {paginated.map((r) => (
                 <tr key={r.orderId} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
-                  <td className="px-4 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{r.user}</td>
+                  <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.orderId}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.productName}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.productName}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">Bundle — {r.bundleName}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.purchasedDate)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">

@@ -17,7 +17,6 @@ import {
   UserCog,
   Wifi,
   Umbrella,
-  Ticket,
   Zap,
   Car,
   BarChart3,
@@ -103,7 +102,6 @@ const navSections: NavSection[] = [
       { label: "Transportation", path: "/partner-products/transportation", icon: <Car size={16} /> },
       { label: "eSIM",           path: "/partner-products/esim",           icon: <Wifi size={16} /> },
       { label: "Insurance",      path: "/partner-products/insurance",      icon: <Umbrella size={16} /> },
-      { label: "Coupon",         path: "/partner-products/coupon",         icon: <Ticket size={16} /> },
     ],
   },
   {

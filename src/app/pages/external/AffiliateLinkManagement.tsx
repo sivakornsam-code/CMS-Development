@@ -181,7 +181,7 @@ export function AffiliateLinkManagement() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search link name or partner..."
+        searchableFields={["Name", "Partner"]}
         showPeriod={false}
         showCreate
         createLabel="Create Link"
@@ -190,9 +190,6 @@ export function AffiliateLinkManagement() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} links</span>
-        </div>
         <div className="overflow-x-auto relative">
           <table className="w-full text-sm">
             <thead>

@@ -14,6 +14,7 @@ export function StatusBadge({ status }: { status: string }) {
     // FastPass
     "Not verified": "bg-amber-100 text-amber-700",
     "Ready to use": "bg-green-100 text-green-700",
+    Confirmed: "bg-emerald-100 text-emerald-700",
     Redeemed: "bg-blue-100 text-blue-700",
     Expired: "bg-red-100 text-red-700",
     // Transportation

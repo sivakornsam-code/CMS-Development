@@ -20,7 +20,8 @@
       "Bash(kill %1)",
       "Bash(grep -v \"^--$\")",
       "Bash(npx tsc *)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/vite build *)"
     ]
   }
 }

@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+export const PAGE_SIZE = 10;
+
 interface TablePaginationProps {
   total: number;
   page: number;
@@ -9,7 +11,7 @@ interface TablePaginationProps {
 
 export function TablePagination({ total, page, pageSize, onPageChange }: TablePaginationProps) {
   const totalPages = Math.ceil(total / pageSize);
-  if (totalPages <= 1) return null;
+  if (total === 0) return null;
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);

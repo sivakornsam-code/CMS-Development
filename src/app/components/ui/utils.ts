@@ -40,6 +40,25 @@ export function sortByStatus<T>(
   });
 }
 
+export function sortByStatusWithDate<T>(
+  items: T[],
+  statusKey: keyof T,
+  priority: string[],
+  dir: "asc" | "desc",
+  dateKey: keyof T
+): T[] {
+  return [...items].sort((a, b) => {
+    const ai = priority.indexOf(a[statusKey] as string);
+    const bi = priority.indexOf(b[statusKey] as string);
+    const aRank = ai === -1 ? priority.length : ai;
+    const bRank = bi === -1 ? priority.length : bi;
+    if (aRank !== bRank) return dir === "asc" ? aRank - bRank : bRank - aRank;
+    const av = (a[dateKey] as string | null | undefined) ?? "";
+    const bv = (b[dateKey] as string | null | undefined) ?? "";
+    return av < bv ? 1 : av > bv ? -1 : 0;
+  });
+}
+
 export function sortByDatetime<T>(
   items: T[],
   key: keyof T,

@@ -280,7 +280,7 @@ export function VoucherComponent() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search voucher name or code..."
+        searchableFields={["Name", "Code"]}
         showPeriod={false}
         showCreate
         createLabel="Create Voucher"
@@ -289,9 +289,6 @@ export function VoucherComponent() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} voucher components</span>
-        </div>
         <div className="overflow-x-auto relative">
           <table className="w-full text-sm">
             <thead>

@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { X, Ticket, Users, ShoppingBag, LayoutGrid, Pencil, Check, Image as ImageIcon } from "lucide-react";
-import { mockFastPass } from "../../data/mockData";
+import { mockFastPass, mockUsers } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
-import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
-
-const PAGE_SIZE = 5;
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 
 const AIRPORTS = [
   { label: "All",  code: "" },
@@ -68,17 +66,18 @@ type SortKey = "status" | "flightDateTime";
 type SortDir = "asc" | "desc";
 
 function MiniDash() {
-  const total = mockFastPass.length;
-  const totalPurchased = mockFastPass.reduce((s, r) => s + r.travelers, 0);
+  const totalOrders = new Set(mockFastPass.map((r) => r.orderId)).size;
+  const totalFastPasses = mockFastPass.length;
   const unique = new Set(mockFastPass.map((r) => r.user)).size;
-  const bundle = mockFastPass.filter((r) => r.purchaseFrom === "Bundle").length;
-  const direct = mockFastPass.filter((r) => r.purchaseFrom === "Direct").length;
+  const totalUsers = mockUsers.length;
+  const bundleOrders = new Set(mockFastPass.filter((r) => r.purchaseFrom === "Bundle").map((r) => r.orderId)).size;
+  const directOrders = new Set(mockFastPass.filter((r) => r.purchaseFrom === "Direct").map((r) => r.orderId)).size;
 
   const cards = [
-    { label: "Total FastPass Orders", value: total, sub: "Number of orders", icon: <Ticket size={16} className="text-blue-600" />, bg: "bg-blue-50" },
-    { label: "Total FastPass Purchased", value: totalPurchased, sub: "Number of FastPass", icon: <ShoppingBag size={16} className="text-violet-600" />, bg: "bg-violet-50" },
-    { label: "Unique Purchasing Users", value: unique, sub: "Unique users", icon: <Users size={16} className="text-emerald-600" />, bg: "bg-emerald-50" },
-    { label: "Bundle vs Direct", value: `${bundle} · ${direct}`, sub: "Bundle · Direct", icon: <LayoutGrid size={16} className="text-amber-600" />, bg: "bg-amber-50" },
+    { label: "Total FastPass Orders", value: totalOrders, sub: "All time orders", icon: <Ticket size={16} className="text-blue-600" />, bg: "bg-blue-50" },
+    { label: "Total FastPass Purchased", value: totalFastPasses, sub: "Across all orders", icon: <ShoppingBag size={16} className="text-violet-600" />, bg: "bg-violet-50" },
+    { label: "Unique Purchasing Users", value: unique, sub: `Out of ${totalUsers} total users`, icon: <Users size={16} className="text-emerald-600" />, bg: "bg-emerald-50" },
+    { label: "Bundle vs Direct", value: `${bundleOrders} · ${directOrders}`, sub: "Bundle · Direct", icon: <LayoutGrid size={16} className="text-amber-600" />, bg: "bg-amber-50" },
   ];
 
   return (
@@ -124,7 +123,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
         ["Full Name", record.fullName],
         ["Passport Number", record.passport],
         ["Nationality", record.nationality],
-        ["Date of Birth", record.dob],
+        ["Date of Birth", formatDate(record.dob)],
         ["Gender", record.gender],
       ]}
     </Section>
@@ -152,7 +151,6 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           ["Travelers in Party", String(record.travelers)],
           ["Golf Cart", record.golfCart ? "Yes" : "No"],
           ["Butler Service", record.butler ? "Yes" : "No"],
-          ...(record.butler ? [["Butler Amount", String(record.butlerAmount)] as [string, string]] : []),
         ]}
       </Section>
 
@@ -226,13 +224,12 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           <span className="text-xs text-slate-500">Status</span>
           {editing ? (
             <div className="flex items-center gap-2">
-              <select
+              <FilterDropdown
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+                onChange={setStatus}
+                options={ALL_STATUSES.map((s) => ({ label: s, value: s }))}
+                className="w-36"
+              />
               <button
                 onClick={() => setEditing(false)}
                 className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
@@ -290,8 +287,8 @@ export function FastPass() {
   const [airportFilter, setAirportFilter] = useState("");
   const [selected, setSelected] = useState<FP | null>(null);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("flightDateTime");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -316,8 +313,8 @@ export function FastPass() {
     return matchSearch && matchStatus && matchAirport;
   });
 
-  const sorted = !sortKey ? filtered
-    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+  const sorted = sortKey === "status"
+    ? sortByStatusWithDate(filtered, "status", STATUS_PRIORITY, sortDir, "flightDateTime")
     : sortByDatetime(filtered, "flightDateTime", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -331,7 +328,7 @@ export function FastPass() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Order ID, email, name, flight no…"
+        searchableFields={["Order ID", "Email", "Full Name", "Flight No."]}
         showPeriod
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
@@ -349,11 +346,22 @@ export function FastPass() {
       />
 
       <div className="w-full min-w-0 bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} records</span>
-        </div>
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "1370px" }}>
+            <colgroup>
+              {/* Fixed column widths — intentional, do not remove */}
+              <col style={{ width: "180px" }} />{/* User Account */}
+              <col style={{ width: "160px" }} />{/* Airport */}
+              <col style={{ width: "90px" }} /> {/* Flight No. */}
+              <col style={{ width: "80px" }} /> {/* Arr/Dep */}
+              <col style={{ width: "150px" }} />{/* Flight Date/Time */}
+              <col style={{ width: "150px" }} />{/* Full Name */}
+              <col style={{ width: "110px" }} />{/* Passport */}
+              <col style={{ width: "100px" }} />{/* Nationality */}
+              <col style={{ width: "120px" }} />{/* Order ID */}
+              <col style={{ width: "120px" }} />{/* FastPass ID */}
+              <col style={{ width: "110px" }} />{/* Status */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 {["User Account", "Airport", "Flight No.", "Arr/Dep"].map((h) => (
@@ -373,12 +381,12 @@ export function FastPass() {
             <tbody>
               {paginated.map((r) => (
                 <tr key={r.fastpassId} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
-                  <td className="px-4 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{r.user}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.airport}</td>
+                  <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.user}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.airport}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.flightNo}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.arrivalDeparture}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.flightDateTime)}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.fullName}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.fullName}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap font-mono">{r.passport}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.nationality}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{r.orderId}</td>

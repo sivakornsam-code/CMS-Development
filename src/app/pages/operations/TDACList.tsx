@@ -5,10 +5,8 @@ import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
-import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
-
-const PAGE_SIZE = 5;
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 const STATUS_PRIORITY = ["Active", "Expired"];
 type SortKey = "status" | "submittedAt" | "updatedAt";
 type SortDir = "asc" | "desc";
@@ -119,8 +117,8 @@ export function TDACList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<TDAC | null>(null);
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("submittedAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -141,8 +139,8 @@ export function TDACList() {
     const matchStatus = !statusFilter || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
-  const sorted = !sortKey ? filtered
-    : sortKey === "status" ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir)
+  const sorted = sortKey === "status"
+    ? sortByStatusWithDate(filtered, "status", STATUS_PRIORITY, sortDir, "submittedAt")
     : sortByDatetime(filtered, sortKey, sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -152,7 +150,7 @@ export function TDACList() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="User email or arrival card number…"
+        searchableFields={["Email", "Arrival Card No."]}
         showPeriod
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
@@ -170,11 +168,20 @@ export function TDACList() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} records</span>
-        </div>
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "1170px" }}>
+            <colgroup>
+              {/* Fixed column widths — intentional, do not remove */}
+              <col style={{ width: "200px" }} />{/* Email */}
+              <col style={{ width: "140px" }} />{/* Name (TDAC) */}
+              <col style={{ width: "130px" }} />{/* Arrival Card No. */}
+              <col style={{ width: "100px" }} />{/* Nationality */}
+              <col style={{ width: "100px" }} />{/* Arrival Date */}
+              <col style={{ width: "100px" }} />{/* Departure Date */}
+              <col style={{ width: "150px" }} />{/* Submitted Date/Time */}
+              <col style={{ width: "150px" }} />{/* Updated Date/Time */}
+              <col style={{ width: "100px" }} />{/* Status */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 {["Email", "Name (TDAC)", "Arrival Card No.", "Nationality", "Arrival Date", "Departure Date"].map((h) => (
@@ -198,8 +205,8 @@ export function TDACList() {
                   className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
                   onClick={() => setSelected(r)}
                 >
-                  <td className="px-4 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{r.email}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.name}</td>
+                  <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.email}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.name}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap font-mono">{r.arrivalCardNo}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{r.nationality}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatDate(r.arrivalDate)}</td>

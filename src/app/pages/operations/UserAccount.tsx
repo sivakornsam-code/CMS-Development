@@ -5,11 +5,11 @@ import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
-import { formatDate, sortByStatus } from "../../components/ui/utils";
-
-const PAGE_SIZE = 5;
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 const STATUS_PRIORITY = ["Active", "Inactive"];
+type SortKey = "status" | "registered";
+type SortDir = "asc" | "desc";
 
 type User = typeof mockUsers[0] & { status: string };
 
@@ -178,7 +178,14 @@ function UserDetailModal({
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-slate-100">
-                <table className="w-full text-sm">
+                <table className="w-full table-fixed text-sm" style={{ minWidth: "420px" }}>
+                  <colgroup>
+                    {/* Fixed column widths — intentional, do not remove */}
+                    <col style={{ width: "100px" }} />{/* Order ID */}
+                    <col style={{ width: "90px" }} /> {/* Category */}
+                    <col style={{ width: "140px" }} />{/* Product */}
+                    <col style={{ width: "90px" }} /> {/* Total Paid */}
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50">
                       {["Order ID", "Category", "Product", "Total Paid"].map((h) => (
@@ -254,15 +261,15 @@ export function UserAccount() {
   const [statusFilter, setStatusFilter] = useState("");
   const [tdacFilter, setTdacFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [sortActive, setSortActive] = useState(false);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("registered");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  function handleSortStatus() {
-    if (sortActive) {
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
-      setSortActive(true);
-      setSortDir("asc");
+      setSortKey(key);
+      setSortDir(key === "status" ? "asc" : "desc");
     }
     setPage(1);
   }
@@ -282,7 +289,9 @@ export function UserAccount() {
     return matchSearch && matchType && matchStatus && matchTdac;
   });
 
-  const sorted = sortActive ? sortByStatus(filtered, "status", STATUS_PRIORITY, sortDir) : filtered;
+  const sorted = sortKey === "status"
+    ? sortByStatusWithDate(filtered, "status", STATUS_PRIORITY, sortDir, "registered")
+    : sortByDatetime(filtered, "registered", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
@@ -297,7 +306,7 @@ export function UserAccount() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search user email..."
+        searchableFields={["Email"]}
         showPeriod
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
@@ -337,18 +346,29 @@ export function UserAccount() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} users</span>
-        </div>
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "930px" }}>
+            <colgroup>
+              {/* Fixed column widths — intentional, do not remove */}
+              <col style={{ width: "200px" }} />{/* Email */}
+              <col style={{ width: "90px" }} /> {/* Total Orders */}
+              <col style={{ width: "90px" }} /> {/* Total Spend */}
+              <col style={{ width: "90px" }} /> {/* User Type */}
+              <col style={{ width: "120px" }} />{/* Partner Source */}
+              <col style={{ width: "100px" }} />{/* TDAC Status */}
+              <col style={{ width: "150px" }} />{/* Registered Date/Time */}
+              <col style={{ width: "90px" }} /> {/* Status */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Email", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status", "Registered Date"].map((h) => (
+                {["Email", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
-                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={handleSortStatus}>
-                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortActive} direction={sortDir} /></span>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("registered")}>
+                  <span className="inline-flex items-center gap-1">Registered Date/Time<SortIndicator active={sortKey === "registered"} direction={sortDir} /></span>
+                </th>
+                <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                  <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
                 </th>
               </tr>
             </thead>
@@ -359,7 +379,7 @@ export function UserAccount() {
                   className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer"
                   onClick={() => setSelectedUser(u)}
                 >
-                  <td className="px-4 py-3 text-xs text-blue-600 font-medium">{u.email}</td>
+                  <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{u.email}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{u.orders}</td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800">{u.spend}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.userType} /></td>

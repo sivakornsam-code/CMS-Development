@@ -5,10 +5,8 @@ import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
-import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
-
-const PAGE_SIZE = 5;
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
+import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 // userType is sorted by business priority, not alphabetically
 const USER_TYPE_PRIORITY = ["Organic", "Affiliate"];
 type SortKey = "userType" | "created" | "updated";
@@ -75,8 +73,8 @@ export function OrderTransaction() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [userTypeFilter, setUserTypeFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("created");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -94,8 +92,8 @@ export function OrderTransaction() {
     const matchType = !userTypeFilter || o.userType === userTypeFilter;
     return matchSearch && matchCat && matchType;
   });
-  const sorted = !sortKey ? filtered
-    : sortKey === "userType" ? sortByStatus(filtered, "userType", USER_TYPE_PRIORITY, sortDir)
+  const sorted = sortKey === "userType"
+    ? sortByStatusWithDate(filtered, "userType", USER_TYPE_PRIORITY, sortDir, "created")
     : sortByDatetime(filtered, sortKey, sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -105,7 +103,7 @@ export function OrderTransaction() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search Order ID or email..."
+        searchableFields={["Order ID", "Email"]}
         showPeriod
         showExport
         onSearch={(q) => { setSearch(q); setPage(1); }}
@@ -135,21 +133,31 @@ export function OrderTransaction() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <span className="text-xs text-slate-500">{filtered.length} transactions</span>
-        </div>
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "1240px" }}>
+            <colgroup>
+              {/* Fixed column widths — intentional, do not remove */}
+              <col style={{ width: "120px" }} />{/* Order ID */}
+              <col style={{ width: "180px" }} />{/* User Account */}
+              <col style={{ width: "100px" }} />{/* Category */}
+              <col style={{ width: "140px" }} />{/* Product */}
+              <col style={{ width: "80px" }} /> {/* Amount */}
+              <col style={{ width: "90px" }} /> {/* Total Paid */}
+              <col style={{ width: "120px" }} />{/* Partner Source */}
+              <col style={{ width: "150px" }} />{/* Created Date/Time */}
+              <col style={{ width: "150px" }} />{/* Updated Date/Time */}
+              <col style={{ width: "110px" }} />{/* User Type */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 {["Order ID", "User Account", "Category", "Product", "Amount", "Total Paid", "Partner Source"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
-                  <span className="inline-flex items-center gap-1">Created<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
+                  <span className="inline-flex items-center gap-1">Created Date/Time<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
                 </th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
-                  <span className="inline-flex items-center gap-1">Updated<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
+                  <span className="inline-flex items-center gap-1">Updated Date/Time<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
                 </th>
                 <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("userType")}>
                   <span className="inline-flex items-center gap-1">User Type<SortIndicator active={sortKey === "userType"} direction={sortDir} /></span>
@@ -164,7 +172,7 @@ export function OrderTransaction() {
                   onClick={() => setSelectedOrder(o)}
                 >
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium whitespace-nowrap">{o.id}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{o.user}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{o.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.category}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{o.product}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.amount}</td>

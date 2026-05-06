@@ -182,7 +182,7 @@ export function VendorManagement() {
 
       <FilterBar
         showSearch
-        searchPlaceholder="Search vendor name..."
+        searchableFields={["Name", "Code"]}
         showPeriod
         showCreate
         createLabel="Create Vendor"
@@ -191,9 +191,6 @@ export function VendorManagement() {
       />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <span className="text-xs text-slate-500">{filtered.length} vendors</span>
-        </div>
         <div className="overflow-x-auto relative">
           <table className="w-full text-sm">
             <thead>

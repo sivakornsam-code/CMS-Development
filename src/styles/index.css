@@ -48,5 +48,4 @@
 .overflow-x-auto table :is(th, td)[class*="sticky"][class*="right-"][class*="border-l"] {
   border-left-color: transparent;
   box-shadow: inset 1px 0 0 rgb(241 245 249);
-  background-clip: padding-box;
 }
