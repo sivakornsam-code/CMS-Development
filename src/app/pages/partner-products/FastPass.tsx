@@ -360,7 +360,7 @@ export function FastPass() {
               <col style={{ width: "100px" }} />{/* Nationality */}
               <col style={{ width: "120px" }} />{/* Order ID */}
               <col style={{ width: "120px" }} />{/* FastPass ID */}
-              <col style={{ width: "110px" }} />{/* Status */}
+              <col style={{ width: "140px" }} />{/* Status */}
             </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">

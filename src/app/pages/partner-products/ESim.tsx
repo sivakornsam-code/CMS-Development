@@ -10,10 +10,24 @@ import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../componen
 
 type ES = typeof mockEsim[0];
 
-const ALL_STATUSES = ["Processing", "Not installed", "Inactive", "Active", "Out of data", "Expired"];
-const STATUS_PRIORITY = ["Processing", "Not installed", "Active", "Out of data", "Expired", "Inactive"];
+const ALL_STATUSES = ["Not Installed", "Inactive", "Active", "Out of Data", "Expired"];
+const STATUS_PRIORITY = ["Not Installed", "Inactive", "Active", "Out of Data", "Expired"];
 type SortKey = "status" | "purchasedDate";
 type SortDir = "asc" | "desc";
+
+function resolvePurchaseFrom(record: ES): string {
+  if (record.type === "Top-up") return "—";
+  return record.purchaseFrom === "Bundle" ? `Bundle — ${record.bundleName}` : "Direct";
+}
+
+function parseProductSpecs(productName: string): { data: string; duration: string } {
+  const durationMatch = productName.match(/(\d+)D/i);
+  const dataMatch = productName.match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+  return {
+    duration: durationMatch ? `${durationMatch[1]} ${durationMatch[1] === "1" ? "Day" : "Days"}` : "—",
+    data: dataMatch ? `${dataMatch[1]} ${dataMatch[2].toUpperCase()}` : "—",
+  };
+}
 
 function MiniDash() {
   const totalRevenue = mockEsim.reduce((sum, r) => {
@@ -22,18 +36,14 @@ function MiniDash() {
 
   const totalOrders = mockEsim.length;
 
-  const bundleOrders = mockEsim.filter((r) => r.purchaseFrom === "Bundle");
-  const directOrders = mockEsim.filter((r) => r.purchaseFrom === "Direct");
-  const directStandard = directOrders.filter((r) => !r.productName.toLowerCase().includes("top-up"));
-  const directTopup = directOrders.filter((r) => r.productName.toLowerCase().includes("top-up"));
+  const bundleCount = mockEsim.filter((r) => r.type === "Standard" && r.purchaseFrom === "Bundle").length;
+  const directCount = mockEsim.filter((r) => r.type === "Standard" && r.purchaseFrom === "Direct").length;
+  const topupCount = mockEsim.filter((r) => r.type === "Top-up").length;
 
-  const bundleByName: Record<string, number> = {};
-  bundleOrders.forEach((r) => {
-    if (r.bundleName) bundleByName[r.bundleName] = (bundleByName[r.bundleName] || 0) + 1;
-  });
-
-  const installedStatuses = new Set(["Inactive", "Active", "Out of data", "Expired"]);
-  const totalInstalled = mockEsim.filter((r) => installedStatuses.has(r.status)).length;
+  const installedStatuses = new Set(["Inactive", "Active"]);
+  const totalInstalled = new Set(
+    mockEsim.filter((r) => installedStatuses.has(r.status)).map((r) => r.iccid)
+  ).size;
 
   const packageCounts: Record<string, number> = {};
   mockEsim.forEach((r) => {
@@ -53,8 +63,8 @@ function MiniDash() {
           </div>
           <div>
             <p className="text-xs text-slate-500">Total Revenue</p>
-            <p className="text-xl font-semibold text-slate-900 mt-0.5">฿{totalRevenue.toLocaleString()}</p>
-            <p className="text-xs text-slate-400 mt-0.5">All eSIM transactions</p>
+            <p className="text-xl font-semibold text-slate-900 mt-0.5">฿{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-xs text-slate-400 mt-0.5">All eSIM orders</p>
           </div>
         </div>
 
@@ -65,7 +75,7 @@ function MiniDash() {
           <div>
             <p className="text-xs text-slate-500">Total eSIM Orders</p>
             <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalOrders}</p>
-            <p className="text-xs text-slate-400 mt-0.5">Number of orders</p>
+            <p className="text-xs text-slate-400 mt-0.5">Standard & Top-up</p>
           </div>
         </div>
 
@@ -76,14 +86,13 @@ function MiniDash() {
           <div>
             <p className="text-xs text-slate-500">Total eSIM Installed</p>
             <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalInstalled}</p>
-            <p className="text-xs text-slate-400 mt-0.5">Activated on device</p>
+            <p className="text-xs text-slate-400 mt-0.5">Installed on device</p>
           </div>
         </div>
       </div>
 
       {/* Row 2 – list cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* eSIM Package Orders Count */}
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <ShoppingBag size={13} className="text-blue-600" />
@@ -92,20 +101,19 @@ function MiniDash() {
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs">
               <span className="text-slate-500 font-medium">Bundle</span>
-              <span className="font-semibold text-slate-800">{bundleOrders.length}</span>
+              <span className="font-semibold text-slate-800">{bundleCount}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500 font-medium">Direct – Standard</span>
-              <span className="font-semibold text-slate-800">{directStandard.length}</span>
+              <span className="text-slate-500 font-medium">Direct</span>
+              <span className="font-semibold text-slate-800">{directCount}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500 font-medium">Direct – Top-up</span>
-              <span className="font-semibold text-slate-800">{directTopup.length}</span>
+              <span className="text-slate-500 font-medium">Top-up</span>
+              <span className="font-semibold text-slate-800">{topupCount}</span>
             </div>
           </div>
         </div>
 
-        {/* Top 5 Most Purchased */}
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={13} className="text-violet-600" />
@@ -142,52 +150,94 @@ function Section({ title, children }: { title: string; children: [string, string
   );
 }
 
-function DetailModal({ record, onClose }: { record: ES; onClose: () => void }) {
+function TypeBadge({ type }: { type: "Standard" | "Top-up" }) {
+  if (type === "Top-up") {
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">Top-up</span>;
+  }
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Standard</span>;
+}
+
+function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: () => void; onOpenOrder: (r: ES) => void }) {
+  const specs = parseProductSpecs(record.productName);
+  const parentRecord = record.type === "Top-up" && record.parentOrderId
+    ? mockEsim.find((r) => r.orderId === record.parentOrderId) ?? null
+    : null;
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">eSIM Detail</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Order Details</h3>
             <p className="text-xs text-slate-500">{record.orderId}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">Status</span>
-            <StatusBadge status={record.status} />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500">Type</span>
+              <TypeBadge type={record.type} />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500">Status</span>
+              <StatusBadge status={record.status} variant="esim" />
+            </div>
           </div>
 
-          <Section title="eSIM Details">
+          <Section title="Details">
             {[
               ["User Account", record.user],
               ["Product Name", record.productName],
-              ["Purchase From", record.purchaseFrom === "Bundle" ? `Bundle — ${record.bundleName}` : "Direct"],
+              ["Data", specs.data],
+              ["Duration", specs.duration],
+              ...(record.type === "Standard" ? [["Purchase From", resolvePurchaseFrom(record)] as [string, string]] : []),
               ["ICCID", record.iccid],
               ["Vendor Source Package Code", record.vendorCode],
               ["Purchased Date / Time", formatDate(record.purchasedDate)],
-            ]}
+            ] as [string, string][]}
           </Section>
 
-          <Section title="Payment Details">
-            {[
-              ["Order ID", record.orderId],
-              ["Payment Date / Time", formatDate(record.paymentDate)],
-              ["Payment Method", record.paymentMethod],
-              ["Subtotal", record.subtotal],
-              ["Total", record.total],
-            ]}
-          </Section>
+          {/* Payment Details — rendered directly to allow the Parent Order ID link */}
+          <div>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment Details</h4>
+            <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs text-slate-500 shrink-0">Order ID</span>
+                <div className="text-right">
+                  <span className="text-xs font-medium text-slate-800">{record.orderId}</span>
+                  {parentRecord && (
+                    <button
+                      className="block text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 ml-auto"
+                      onClick={(e) => { e.stopPropagation(); onOpenOrder(parentRecord); }}
+                    >
+                      Parent: {record.parentOrderId}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {([
+                ["Payment Date / Time", formatDate(record.paymentDate)],
+                ["Payment Method", record.paymentMethod],
+                ["Subtotal", record.subtotal],
+                ["Total", record.total],
+              ] as [string, string][]).map(([label, value]) => (
+                <div key={label} className="flex items-start justify-between gap-4">
+                  <span className="text-xs text-slate-500 shrink-0">{label}</span>
+                  <span className="text-xs font-medium text-slate-800 text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Status Log</h4>
             <div className="space-y-2">
               {[...record.statusLog].reverse().map((entry, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
-                  <StatusBadge status={entry.status} />
-                  <span className="text-xs text-slate-500 mt-0.5">{formatDate(entry.dateTime)}</span>
+                <div key={i} className="flex items-center justify-between gap-4 p-3 bg-slate-50 rounded-xl">
+                  <StatusBadge status={entry.status} variant="esim" />
+                  <span className="text-xs text-slate-500 shrink-0">{formatDate(entry.dateTime)}</span>
                 </div>
               ))}
             </div>
@@ -233,7 +283,7 @@ export function ESim() {
 
   return (
     <div>
-      {selected && <DetailModal record={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailModal record={selected} onClose={() => setSelected(null)} onOpenOrder={(r) => setSelected(r)} />}
 
       <MiniDash />
 
@@ -258,19 +308,21 @@ export function ESim() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto relative">
-          <table className="w-full table-fixed text-sm" style={{ minWidth: "930px" }}>
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "1020px" }}>
             <colgroup>
               {/* Fixed column widths — intentional, do not remove */}
-              <col style={{ width: "180px" }} />{/* User Account */}
+              <col style={{ width: "160px" }} />{/* User Account */}
               <col style={{ width: "120px" }} />{/* Order ID */}
-              <col style={{ width: "200px" }} />{/* Product Name */}
-              <col style={{ width: "160px" }} />{/* Purchase From */}
-              <col style={{ width: "150px" }} />{/* Purchased Date/Time */}
-              <col style={{ width: "120px" }} />{/* Status */}
+              <col style={{ width: "100px" }} />{/* Type */}
+              <col style={{ width: "180px" }} />{/* Product Name */}
+              <col style={{ width: "80px" }} />{/* Data */}
+              <col style={{ width: "90px" }} />{/* Duration */}
+              <col style={{ width: "160px" }} />{/* Purchased Date/Time */}
+              <col style={{ width: "130px" }} />{/* Status */}
             </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["User Account", "Order ID", "Product Name", "Purchase From"].map((h) => (
+                {["User Account", "Order ID", "Type", "Product Name", "Data", "Duration"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("purchasedDate")}>
@@ -286,13 +338,15 @@ export function ESim() {
                 <tr key={r.orderId} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.orderId}</td>
-                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.productName}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                    {r.purchaseFrom === "Bundle" ? `Bundle — ${r.bundleName}` : "Direct"}
+                  <td className="px-4 py-3 text-xs whitespace-nowrap">
+                    <TypeBadge type={r.type} />
                   </td>
+                  <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.productName}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{parseProductSpecs(r.productName).data}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{parseProductSpecs(r.productName).duration}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.purchasedDate)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
-                    <StatusBadge status={r.status} />
+                    <StatusBadge status={r.status} variant="esim" />
                   </td>
                 </tr>
               ))}

@@ -10,8 +10,8 @@ import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../componen
 
 type INS = typeof mockInsurance[0];
 
-const ALL_STATUSES = ["Not submitted", "Active", "Rejected"];
-const STATUS_PRIORITY = ["Not submitted", "Active", "Rejected"];
+const ALL_STATUSES = ["Not submitted", "Active", "Rejected", "Expired"];
+const STATUS_PRIORITY = ["Not submitted", "Active", "Rejected", "Expired"];
 type SortKey = "status" | "purchasedDate";
 type SortDir = "asc" | "desc";
 
@@ -21,31 +21,16 @@ function MiniDash() {
   const totalApproved = mockInsurance.filter((r) => r.status === "Active").length;
   const totalDenied = mockInsurance.filter((r) => r.status === "Rejected").length;
 
-  const bundleByName: Record<string, number> = {};
-  mockInsurance.forEach((r) => {
-    bundleByName[r.bundleName] = (bundleByName[r.bundleName] || 0) + 1;
-  });
-
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-      {/* Total Issued – list-style card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <Umbrella size={16} className="text-blue-600" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">Total Insurance Issued</p>
-            <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalIssued}</p>
-          </div>
+      <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-start gap-3">
+        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+          <Umbrella size={16} className="text-blue-600" />
         </div>
-        <div className="space-y-1.5 border-t border-slate-100 pt-2.5">
-          {Object.entries(bundleByName).map(([name, count]) => (
-            <div key={name} className="flex justify-between text-xs">
-              <span className="text-slate-400">{name}</span>
-              <span className="font-medium text-slate-700">{count}</span>
-            </div>
-          ))}
+        <div>
+          <p className="text-xs text-slate-500">Total Insurance Issued</p>
+          <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalIssued}</p>
+          <p className="text-xs text-slate-400 mt-0.5">All time</p>
         </div>
       </div>
 
@@ -130,30 +115,33 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Status */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">Status</span>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
-                >
-                  <Check size={11} /> Save
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500">Status</span>
+              {editing ? (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
+                  >
+                    <Check size={11} /> Save
+                  </button>
+                </div>
+              ) : (
                 <StatusBadge status={status} />
-                {record.status === "Rejected" && (record as any).rejectReason && (
-                  <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-lg">{(record as any).rejectReason}</span>
-                )}
+              )}
+            </div>
+            {!editing && record.status === "Rejected" && (record as any).rejectReason && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500">Reason</span>
+                <span className="text-xs text-orange-700">{(record as any).rejectReason}</span>
               </div>
             )}
           </div>
@@ -211,12 +199,22 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
           <div>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Status Log</h4>
             <div className="space-y-2">
-              {[...record.statusLog].reverse().map((entry, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
-                  <StatusBadge status={entry.status} />
-                  <span className="text-xs text-slate-500 mt-0.5">{formatDate(entry.dateTime)}</span>
-                </div>
-              ))}
+              {[...record.statusLog].reverse().map((entry, i) => {
+                const dotClass =
+                  entry.status === "Approved" ? "bg-emerald-500" :
+                  entry.status === "Rejected" ? "bg-orange-500" :
+                  entry.status === "Expired" ? "bg-red-500" :
+                  "bg-blue-500";
+                return (
+                  <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${dotClass}`} />
+                    <div>
+                      <p className="text-xs font-medium text-slate-800">{entry.status}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{formatDate(entry.dateTime)}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -317,12 +315,7 @@ export function Insurance() {
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">Bundle — {r.bundleName}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(r.purchasedDate)}</td>
                   <td className="sticky right-0 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={r.status} />
-                      {r.status === "Rejected" && (r as any).rejectReason && (
-                        <span className="text-xs text-red-500 hidden lg:inline">({(r as any).rejectReason})</span>
-                      )}
-                    </div>
+                    <StatusBadge status={r.status} />
                   </td>
                 </tr>
               ))}

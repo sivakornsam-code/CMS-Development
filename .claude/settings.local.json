@@ -21,7 +21,10 @@
       "Bash(grep -v \"^--$\")",
       "Bash(npx tsc *)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(node_modules/.bin/vite build *)"
+      "Bash(node_modules/.bin/vite build *)",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module)",
+      "Bash(awk '/^export const mockInsurance/,/^\\\\];/' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)"
     ]
   }
 }

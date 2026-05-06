@@ -12,6 +12,7 @@ interface FilterDropdownProps {
   onChange: (value: string) => void;
   icon?: LucideIcon;
   placeholder?: string;
+  displayLabel?: string;
   className?: string;
 }
 
@@ -21,6 +22,7 @@ export function FilterDropdown({
   onChange,
   icon: Icon,
   placeholder = "Select",
+  displayLabel,
   className = "",
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -45,7 +47,7 @@ export function FilterDropdown({
         className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50"
       >
         {Icon && <Icon size={13} />}
-        <span>{selected?.label ?? placeholder}</span>
+        <span>{displayLabel ?? selected?.label ?? placeholder}</span>
         <ChevronDown size={13} />
       </button>
       {open && (

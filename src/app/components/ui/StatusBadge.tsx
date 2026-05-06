@@ -1,5 +1,5 @@
-export function StatusBadge({ status }: { status: string }) {
-  const colorMap: Record<string, string> = {
+export function StatusBadge({ status, variant }: { status: string; variant?: "esim" }) {
+  const baseMap: Record<string, string> = {
     // generic
     Active: "bg-emerald-100 text-emerald-700",
     Inactive: "bg-slate-100 text-slate-500",
@@ -21,16 +21,23 @@ export function StatusBadge({ status }: { status: string }) {
     Assigned: "bg-blue-100 text-blue-700",
     Cancelled: "bg-red-100 text-red-700",
     Complete: "bg-emerald-100 text-emerald-700",
-    // eSIM
-    Processing: "bg-amber-100 text-amber-700",
-    "Not installed": "bg-slate-100 text-slate-500",
-    "Out of data": "bg-orange-100 text-orange-700",
+    // eSIM statuses
+    "Not Installed": "bg-slate-100 text-slate-500",
+    "Out of Data": "bg-orange-100 text-orange-700",
     // Insurance
     "Not submitted": "bg-slate-100 text-slate-500",
-    Rejected: "bg-red-100 text-red-700",
+    Rejected: "bg-orange-100 text-orange-700",
     Purchased: "bg-sky-100 text-sky-700",
     Approved: "bg-emerald-100 text-emerald-700",
+    Expired: "bg-red-100 text-red-700",
   };
+
+  // eSIM variant: Inactive is blue instead of grey
+  const esimOverrides: Record<string, string> = {
+    Inactive: "bg-blue-100 text-blue-700",
+  };
+
+  const colorMap = variant === "esim" ? { ...baseMap, ...esimOverrides } : baseMap;
   const cls = colorMap[status] || "bg-slate-100 text-slate-600";
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
