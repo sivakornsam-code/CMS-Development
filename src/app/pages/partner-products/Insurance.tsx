@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Pencil, Check, Umbrella, FileText, CheckCircle, XCircle } from "lucide-react";
+import { X, Umbrella, FileText, CheckCircle, XCircle } from "lucide-react";
 import { mockInsurance } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
 
 type INS = typeof mockInsurance[0];
 
@@ -59,8 +60,8 @@ function MiniDash() {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-          <XCircle size={16} className="text-red-500" />
+        <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+          <XCircle size={16} className="text-orange-500" />
         </div>
         <div>
           <p className="text-xs text-slate-500">Total Denied</p>
@@ -91,9 +92,6 @@ function Section({ title, children }: { title: string; children: [string, string
 }
 
 function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [status, setStatus] = useState(record.status);
-
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -102,15 +100,7 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
             <h3 className="text-sm font-semibold text-slate-900">Insurance Detail</h3>
             <p className="text-xs text-slate-500">{record.orderId}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setEditing(!editing)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-            >
-              <Pencil size={12} /> Manage
-            </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -118,27 +108,9 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <span className="text-xs text-slate-500">Status</span>
-              {editing ? (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {ALL_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
-                  >
-                    <Check size={11} /> Save
-                  </button>
-                </div>
-              ) : (
-                <StatusBadge status={status} />
-              )}
+              <StatusBadge status={record.status} />
             </div>
-            {!editing && record.status === "Rejected" && (record as any).rejectReason && (
+            {record.status === "Rejected" && (record as any).rejectReason && (
               <div className="flex items-center gap-3">
                 <span className="text-xs text-slate-500">Reason</span>
                 <span className="text-xs text-orange-700">{(record as any).rejectReason}</span>
@@ -223,6 +195,27 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
   );
 }
 
+const INS_HEADERS = [
+  "User Account", "Order ID", "Product Name", "Purchase From",
+  "Purchased Date/Time", "Status",
+];
+
+function insCSVRow(r: INS): string[] {
+  return [
+    r.user, r.orderId, r.productName,
+    `Bundle — ${r.bundleName}`,
+    formatDate(r.purchasedDate), r.status,
+  ];
+}
+
+function insXLSXRow(r: INS): (string | number | Date | null)[] {
+  return [
+    r.user, r.orderId, r.productName,
+    `Bundle — ${r.bundleName}`,
+    parseExcelDate(r.purchasedDate) as Date | string, r.status,
+  ];
+}
+
 export function Insurance() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -267,6 +260,9 @@ export function Insurance() {
         searchableFields={["Order ID", "Email"]}
         showPeriod
         showExport
+        exportDisabled={sorted.length === 0}
+        onExportCSV={() => exportCSV(INS_HEADERS, sorted.map(insCSVRow), `insurance-${exportDateTag()}.csv`)}
+        onExportXLSX={() => exportXLSX(INS_HEADERS, sorted.map(insXLSXRow), `insurance-${exportDateTag()}.xlsx`)}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <FilterDropdown

@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, formatDateTime, sortByStatusWithDate, sortByDatetime, sortByDatetimePair } from "../../components/ui/utils";
+import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
 
 type TR = typeof mockTransportation[0];
 
@@ -229,7 +230,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
                 <button
                   key={i}
                   type="button"
-                  onClick={() => { onChange(cell.date.toISOString().split("T")[0]); setOpen(false); }}
+                  onClick={() => { const d = cell.date; onChange(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`); setOpen(false); }}
                   className={[
                     "relative h-8 w-full flex items-center justify-center rounded-lg text-[11px] font-medium transition-colors",
                     isSel
@@ -259,7 +260,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
             <button
               type="button"
               onClick={() => {
-                onChange(today.toISOString().split("T")[0]);
+                onChange(`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`);
                 setViewMonth(today.getMonth());
                 setViewYear(today.getFullYear());
                 setOpen(false);
@@ -508,6 +509,7 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
 
   const isChauffeur = record.serviceType === "Chauffeur Service";
   const canModify = status === "Pending" || status === "Assigned";
+  const canEditBooking = status === "Assigned";
 
   const openDriverForm = () => setShowDriverForm(true);
 
@@ -592,7 +594,7 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
           <div data-booking-section>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date / Time Details</h4>
-              {canModify && !showBookingForm && (
+              {canEditBooking && !showBookingForm && (
                 <button
                   onClick={() => { setShowDriverForm(false); setShowBookingForm(true); }}
                   className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium px-2"
@@ -797,6 +799,39 @@ function BookingTabs({ value, onChange, pendingCount }: {
 type SortKey = "status" | "pickUpDateTime" | "created" | "updated";
 type SortDir = "asc" | "desc";
 
+const TR_HEADERS = [
+  "User Account", "Order ID", "Service Type", "Booking ID", "Passenger",
+  "Pick-up Date & Time", "Drop-off Date", "Pick-up Location", "Drop-off Area",
+  "Driver", "Created Date/Time", "Updated Date/Time", "Status",
+];
+
+function trCSVRow(r: TR): string[] {
+  return [
+    r.user, r.orderId, r.serviceType, r.bookingId, r.passengerName,
+    formatDateTime(r.pickUpDate, r.pickUpTime),
+    r.serviceType === "Chauffeur Service" ? formatDate(r.dropOffDate) : "—",
+    r.pickUpLocation, r.dropOffArea,
+    r.driverName || "—",
+    formatDate(r.created), formatDate(r.updated), r.status,
+  ];
+}
+
+function trXLSXRow(r: TR): (string | number | Date | null)[] {
+  const pickUp = r.pickUpDate && r.pickUpTime
+    ? parseExcelDate(`${r.pickUpDate} ${r.pickUpTime}`) as Date | string
+    : "—";
+  return [
+    r.user, r.orderId, r.serviceType, r.bookingId, r.passengerName,
+    pickUp,
+    r.serviceType === "Chauffeur Service" ? (parseExcelDate(r.dropOffDate) as Date | string) : "—",
+    r.pickUpLocation, r.dropOffArea,
+    r.driverName || "—",
+    parseExcelDate(r.created) as Date | string,
+    parseExcelDate(r.updated) as Date | string,
+    r.status,
+  ];
+}
+
 export function Transportation() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -861,6 +896,9 @@ export function Transportation() {
         searchableFields={["Order ID", "Booking ID", "Email", "Passenger Name", "Driver Name"]}
         showPeriod
         showExport
+        exportDisabled={sorted.length === 0}
+        onExportCSV={() => exportCSV(TR_HEADERS, sorted.map(trCSVRow), `transportation-${bookingTab}-${exportDateTag()}.csv`)}
+        onExportXLSX={() => exportXLSX(TR_HEADERS, sorted.map(trXLSXRow), `transportation-${bookingTab}-${exportDateTag()}.xlsx`)}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <>

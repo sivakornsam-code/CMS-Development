@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Calendar, Search, Download, Plus } from "lucide-react";
+import { Calendar, Search, Download, Plus, ChevronDown, Loader2 } from "lucide-react";
 import { FilterDropdown } from "./FilterDropdown";
 import { Calendar as DayCalendar } from "./calendar";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import type { DateRange } from "react-day-picker";
 
 const periodOptions = ["All time", "Today", "Last 7 days", "Last 30 days", "This month", "Custom range"];
@@ -18,7 +19,9 @@ interface FilterBarProps {
   onPeriodChange?: (v: string) => void;
   onCreate?: () => void;
   showExport?: boolean;
-  onExport?: () => void;
+  onExportCSV?: () => void;
+  onExportXLSX?: () => void;
+  exportDisabled?: boolean;
   extraFilters?: React.ReactNode;
 }
 
@@ -34,46 +37,55 @@ function DateRangePopover({
   const [range, setRange] = useState<DateRange | undefined>(initialRange);
 
   return (
-    <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+    <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 w-72">
       <DayCalendar
         mode="range"
         selected={range}
         onSelect={setRange}
         numberOfMonths={1}
-        disabled={{ after: new Date() }}
         classNames={{
-          months: "flex gap-4 p-1",
-          month: "flex flex-col gap-2",
-          caption: "flex justify-center pt-1 relative items-center",
-          caption_label: "text-xs font-semibold text-slate-700",
+          months: "flex flex-col gap-2",
+          month: "flex flex-col gap-3",
+          caption: "flex justify-center relative items-center",
+          caption_label: "text-xs font-semibold text-slate-800",
           nav: "flex items-center gap-1",
           nav_button:
-            "inline-flex items-center justify-center size-6 rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-30",
-          nav_button_previous: "absolute left-1",
-          nav_button_next: "absolute right-1",
+            "inline-flex items-center justify-center w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-30",
+          nav_button_previous: "absolute left-0",
+          nav_button_next: "absolute right-0",
           table: "w-full border-collapse",
-          head_row: "flex",
-          head_cell: "text-slate-400 w-8 text-center text-[10px] font-medium py-1",
-          row: "flex w-full mt-1",
-          cell: "relative p-0 text-center [&:has([aria-selected])]:bg-blue-50 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full [&:has(>.day-range-start)]:rounded-l-full [&:has(>.day-range-end)]:rounded-r-full",
-          day: "size-8 rounded-full text-xs font-normal text-slate-700 hover:bg-slate-100 aria-selected:opacity-100 flex items-center justify-center",
-          day_range_start: "day-range-start bg-blue-600 text-white hover:bg-blue-600 rounded-full",
-          day_range_end: "day-range-end bg-blue-600 text-white hover:bg-blue-600 rounded-full",
+          head_row: "grid grid-cols-7",
+          head_cell: "text-slate-400 text-center text-[10px] font-semibold py-1",
+          row: "grid grid-cols-7 mt-0.5",
+          cell: "relative p-0 text-center [&:has([aria-selected])]:bg-blue-50 first:[&:has([aria-selected])]:rounded-l-lg last:[&:has([aria-selected])]:rounded-r-lg [&:has(>.day-range-start)]:rounded-l-lg [&:has(>.day-range-end)]:rounded-r-lg",
+          day: "h-8 w-full flex items-center justify-center rounded-lg text-[11px] font-medium text-slate-700 hover:bg-slate-100 aria-selected:opacity-100 transition-colors",
+          day_range_start: "day-range-start bg-blue-600 text-white hover:!bg-blue-700 rounded-lg shadow-sm",
+          day_range_end: "day-range-end bg-blue-600 text-white hover:!bg-blue-700 rounded-lg shadow-sm",
           day_selected: "bg-blue-600 text-white hover:bg-blue-600",
-          day_today: "font-semibold text-blue-600",
-          day_outside: "text-slate-300 aria-selected:text-slate-400",
+          day_today: "text-blue-600 bg-blue-50 hover:bg-blue-100 font-semibold",
+          day_outside: "!text-[#CAD5E2] aria-selected:!text-[#CAD5E2]",
           day_disabled: "text-slate-300 opacity-40 cursor-not-allowed",
           day_range_middle: "aria-selected:bg-blue-50 aria-selected:text-slate-700 rounded-none",
           day_hidden: "invisible",
         }}
       />
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-slate-100">
-        <span className="text-xs text-slate-500">
-          {range?.from && range?.to
-            ? `${format(range.from, "d MMM yyyy")} – ${format(range.to, "d MMM yyyy")}`
-            : range?.from
-            ? `${format(range.from, "d MMM yyyy")} – pick end date`
-            : "Pick a start date"}
+      <div className="flex items-center justify-between gap-2 pt-3 mt-1 border-t border-slate-100">
+        <span className="text-xs text-slate-500 leading-relaxed">
+          {range?.from && range?.to ? (
+            <>
+              {format(range.from, "d MMM yyyy")} –{" "}
+              <br />
+              {format(range.to, "d MMM yyyy")}
+            </>
+          ) : range?.from ? (
+            <>
+              {format(range.from, "d MMM yyyy")} –{" "}
+              <br />
+              pick end date
+            </>
+          ) : (
+            "Pick a start date"
+          )}
         </span>
         <div className="flex gap-2">
           <button
@@ -108,7 +120,9 @@ export function FilterBar({
   onPeriodChange,
   onCreate,
   showExport = false,
-  onExport,
+  onExportCSV,
+  onExportXLSX,
+  exportDisabled = false,
   extraFilters,
 }: FilterBarProps) {
   const [period, setPeriod] = useState("All time");
@@ -116,7 +130,10 @@ export function FilterBar({
   const [focused, setFocused] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [appliedRange, setAppliedRange] = useState<DateRange | undefined>();
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showDatePicker) return;
@@ -128,6 +145,32 @@ export function FilterBar({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showDatePicker]);
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!exportRef.current?.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [exportOpen]);
+
+  function handleExport(type: "csv" | "xlsx") {
+    if (exporting || exportDisabled) return;
+    setExportOpen(false);
+    setExporting(true);
+    requestAnimationFrame(() => {
+      try {
+        if (type === "csv") onExportCSV?.();
+        else onExportXLSX?.();
+        toast.success("Export ready — downloading...");
+      } finally {
+        setTimeout(() => setExporting(false), 600);
+      }
+    });
+  }
 
   const handlePeriod = (p: string) => {
     if (p === "Custom range") {
@@ -200,13 +243,50 @@ export function FilterBar({
 
       <div className="ml-auto flex items-center gap-2">
         {showExport && (
-          <button
-            onClick={onExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50"
-          >
-            <Download size={13} />
-            Export
-          </button>
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => {
+                if (!exportDisabled && !exporting) setExportOpen((v) => !v);
+              }}
+              disabled={exporting}
+              title={exportDisabled ? "No data to export" : undefined}
+              className={`flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs transition-colors select-none ${
+                exportDisabled
+                  ? "text-slate-300 cursor-not-allowed"
+                  : exporting
+                  ? "text-slate-500 opacity-70 cursor-not-allowed"
+                  : "text-slate-700 hover:bg-slate-50 cursor-pointer"
+              }`}
+            >
+              {exporting ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Download size={13} />
+              )}
+              Export
+              <ChevronDown
+                size={11}
+                className={`transition-transform duration-150 ${exportOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {exportOpen && !exportDisabled && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden min-w-[180px]">
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Export as CSV
+                </button>
+                <button
+                  onClick={() => handleExport("xlsx")}
+                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Export as Excel (.xlsx)
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {showCreate && (
           <button

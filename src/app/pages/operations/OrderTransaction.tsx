@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
 // userType is sorted by business priority, not alphabetically
 const USER_TYPE_PRIORITY = ["Organic", "Affiliate"];
 type SortKey = "userType" | "created" | "updated";
@@ -33,7 +34,7 @@ function OrderDetailModal({ order, onClose }: { order: typeof mockOrders[0]; onC
                 ["Order ID", order.id],
                 ["Category", order.category],
                 ["Product Name", order.product],
-                ["Amount", order.amount],
+                ["Quantity", String(order.quantity)],
                 ["User Account", order.user],
                 ["User Type", order.userType],
                 ["Partner Source", order.partner],
@@ -50,6 +51,7 @@ function OrderDetailModal({ order, onClose }: { order: typeof mockOrders[0]; onC
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
               {[
                 ["Transaction ID", "TXN-" + order.id.replace("ORD-", "")],
+                ["Subtotal", order.subtotal],
                 ["Total Paid", order.total],
                 ["Payment Method", "Credit Card"],
                 ["Payment Date", formatDate(order.created)],
@@ -65,6 +67,31 @@ function OrderDetailModal({ order, onClose }: { order: typeof mockOrders[0]; onC
       </div>
     </div>
   );
+}
+
+type ORD = typeof mockOrders[0];
+
+const ORD_HEADERS = [
+  "Order ID", "User Account", "Category", "Product Name", "Quantity",
+  "Total Paid", "Partner Source", "Created Date/Time", "Updated Date/Time", "User Type",
+];
+
+function ordCSVRow(o: ORD): string[] {
+  return [
+    o.id, o.user, o.category, o.product,
+    String(o.quantity), o.total, o.partner,
+    formatDate(o.created), formatDate(o.updated), o.userType,
+  ];
+}
+
+function ordXLSXRow(o: ORD): (string | number | Date | null)[] {
+  return [
+    o.id, o.user, o.category, o.product,
+    o.quantity, o.total, o.partner,
+    parseExcelDate(o.created) as Date | string,
+    parseExcelDate(o.updated) as Date | string,
+    o.userType,
+  ];
 }
 
 export function OrderTransaction() {
@@ -106,6 +133,9 @@ export function OrderTransaction() {
         searchableFields={["Order ID", "Email"]}
         showPeriod
         showExport
+        exportDisabled={sorted.length === 0}
+        onExportCSV={() => exportCSV(ORD_HEADERS, sorted.map(ordCSVRow), `order-transaction-${exportDateTag()}.csv`)}
+        onExportXLSX={() => exportXLSX(ORD_HEADERS, sorted.map(ordXLSXRow), `order-transaction-${exportDateTag()}.xlsx`)}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <>
@@ -115,7 +145,7 @@ export function OrderTransaction() {
               placeholder="All Categories"
               options={[
                 { label: "All Categories", value: "" },
-                ...["Bundle", "Transport", "eSIM", "Insurance", "Airport Service", "Coupons"].map((c) => ({ label: c, value: c })),
+                ...["Bundle", "Transport", "eSIM", "Insurance", "Airport Service"].map((c) => ({ label: c, value: c })),
               ]}
             />
             <FilterDropdown
@@ -134,14 +164,14 @@ export function OrderTransaction() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto relative">
-          <table className="w-full table-fixed text-sm" style={{ minWidth: "1240px" }}>
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "1300px" }}>
             <colgroup>
               {/* Fixed column widths — intentional, do not remove */}
               <col style={{ width: "120px" }} />{/* Order ID */}
               <col style={{ width: "180px" }} />{/* User Account */}
               <col style={{ width: "100px" }} />{/* Category */}
-              <col style={{ width: "140px" }} />{/* Product */}
-              <col style={{ width: "80px" }} /> {/* Amount */}
+              <col style={{ width: "200px" }} />{/* Product Name */}
+              <col style={{ width: "80px" }} /> {/* Quantity */}
               <col style={{ width: "90px" }} /> {/* Total Paid */}
               <col style={{ width: "120px" }} />{/* Partner Source */}
               <col style={{ width: "150px" }} />{/* Created Date/Time */}
@@ -150,7 +180,7 @@ export function OrderTransaction() {
             </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Order ID", "User Account", "Category", "Product", "Amount", "Total Paid", "Partner Source"].map(h => (
+                {["Order ID", "User Account", "Category", "Product Name", "Quantity", "Total Paid", "Partner Source"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
@@ -175,7 +205,7 @@ export function OrderTransaction() {
                   <td className="px-4 py-3 text-xs text-slate-700 truncate">{o.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.category}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{o.product}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.amount}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.quantity}</td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800 whitespace-nowrap">{o.total}</td>
                   <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{o.partner}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(o.created)}</td>

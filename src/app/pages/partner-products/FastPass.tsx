@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
 
 const AIRPORTS = [
   { label: "All",  code: "" },
@@ -49,14 +50,14 @@ function getFastPassHistory(record: FP) {
   const verified = record.history.find((h) => h.event === "FastPass verified");
 
   return [
-    detailsUpdated && { event: "FastPass details updated", dateTime: detailsUpdated.dateTime },
+    detailsUpdated && { event: "Last Updated", dateTime: detailsUpdated.dateTime },
     { event: "FastPass verified", dateTime: verified?.dateTime ?? record.lastUpdated },
   ].filter(Boolean) as { event: string; dateTime: string }[];
 }
 
 function getFastPassHistoryDotClass(event: string) {
   if (event === "FastPass verified") return "bg-emerald-500";
-  if (event === "FastPass details updated") return "bg-orange-400";
+  if (event === "Last Updated") return "bg-orange-400";
   return "bg-slate-300";
 }
 
@@ -96,12 +97,11 @@ function MiniDash() {
   );
 }
 
-function PassportDetailPanel() {
+function UserPhotoPanel() {
   return (
     <div>
-      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Passport Detail</h4>
+      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">User Photo</h4>
       <div className="bg-slate-50 rounded-xl p-4 flex flex-col gap-3 w-full">
-        <p className="text-xs text-slate-500">Passport Cover</p>
         <div className="w-full">
           <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center gap-2 overflow-hidden">
             <ImageIcon size={56} className="text-slate-300" />
@@ -131,7 +131,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
 
   const contactInfoSection = (
     <Section title="Contact Info">
-      {[["User Account", record.user]]}
+      {[["Account Email", record.user]]}
     </Section>
   );
 
@@ -151,6 +151,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           ["Travelers in Party", String(record.travelers)],
           ["Golf Cart", record.golfCart ? "Yes" : "No"],
           ["Butler Service", record.butler ? "Yes" : "No"],
+          ["Butler Amount", String(record.butlerAmount)],
         ]}
       </Section>
 
@@ -185,11 +186,9 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
   const infoContent = (
     <div className="space-y-5">
       {personalDetailsSection}
-      {isReadyToUse && (
-        <div className="lg:hidden">
-          <PassportDetailPanel />
-        </div>
-      )}
+      <div className="lg:hidden">
+        <UserPhotoPanel />
+      </div>
       {contactInfoSection}
       {remainingInfoSections}
       {historyLogSection}
@@ -199,7 +198,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
-        className={`bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col ${isReadyToUse ? "sm:max-w-xl lg:max-w-4xl" : "sm:max-w-xl"}`}
+        className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl lg:max-w-4xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -242,24 +241,18 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           )}
         </div>
 
-        {/* Body */}
-        {isReadyToUse ? (
-          <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row min-h-0">
-            {/* Left column — all info */}
-            <div className="lg:flex-[4] lg:overflow-y-auto p-5 lg:border-r border-slate-100">
-              {infoContent}
-            </div>
-
-            {/* Right column — Passport Detail */}
-            <div className="hidden lg:block lg:flex-[3] lg:overflow-y-auto p-5">
-              <PassportDetailPanel />
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-5">
+        {/* Body — two-column layout always */}
+        <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row min-h-0">
+          {/* Left column — all info */}
+          <div className="lg:flex-[4] lg:overflow-y-auto p-5 lg:border-r border-slate-100">
             {infoContent}
           </div>
-        )}
+
+          {/* Right column — User Photo */}
+          <div className="hidden lg:block lg:flex-[3] lg:overflow-y-auto p-5">
+            <UserPhotoPanel />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -279,6 +272,29 @@ function Section({ title, children }: { title: string; children: [string, string
       </div>
     </div>
   );
+}
+
+const FP_HEADERS = [
+  "User Account", "Airport", "Flight No.", "Arr/Dep",
+  "Flight Date/Time", "Full Name", "Passport", "Nationality",
+  "Order ID", "FastPass ID", "Status",
+];
+
+function fpCSVRow(r: FP): string[] {
+  return [
+    r.user, r.airport, r.flightNo, r.arrivalDeparture,
+    formatDate(r.flightDateTime), r.fullName, r.passport, r.nationality,
+    r.orderId, r.fastpassId, r.status,
+  ];
+}
+
+function fpXLSXRow(r: FP): (string | number | Date | null)[] {
+  return [
+    r.user, r.airport, r.flightNo, r.arrivalDeparture,
+    parseExcelDate(r.flightDateTime) as Date | string,
+    r.fullName, r.passport, r.nationality,
+    r.orderId, r.fastpassId, r.status,
+  ];
 }
 
 export function FastPass() {
@@ -318,6 +334,9 @@ export function FastPass() {
     : sortByDatetime(filtered, "flightDateTime", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const tabLabel = airportFilter ? airportFilter.toLowerCase() : "all";
+  const today = exportDateTag();
+
   return (
     <div className="w-full">
       {selected && <DetailModal record={selected} onClose={() => setSelected(null)} />}
@@ -331,6 +350,9 @@ export function FastPass() {
         searchableFields={["Order ID", "Email", "Full Name", "Flight No."]}
         showPeriod
         showExport
+        exportDisabled={sorted.length === 0}
+        onExportCSV={() => exportCSV(FP_HEADERS, sorted.map(fpCSVRow), `fastpass-${tabLabel}-${today}.csv`)}
+        onExportXLSX={() => exportXLSX(FP_HEADERS, sorted.map(fpXLSXRow), `fastpass-${tabLabel}-${today}.xlsx`)}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <FilterDropdown

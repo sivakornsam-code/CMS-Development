@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
 
 type ES = typeof mockEsim[0];
 
@@ -154,7 +155,7 @@ function TypeBadge({ type }: { type: "Standard" | "Top-up" }) {
   if (type === "Top-up") {
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">Top-up</span>;
   }
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Standard</span>;
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-transparent">Standard</span>;
 }
 
 function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: () => void; onOpenOrder: (r: ES) => void }) {
@@ -248,6 +249,29 @@ function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: ()
   );
 }
 
+const ESIM_HEADERS = [
+  "User Account", "Order ID", "Type", "Product Name", "Data", "Duration",
+  "Purchased Date/Time", "Status",
+];
+
+function esimCSVRow(r: ES): string[] {
+  const specs = parseProductSpecs(r.productName);
+  return [
+    r.user, r.orderId, r.type, r.productName,
+    specs.data, specs.duration,
+    formatDate(r.purchasedDate), r.status,
+  ];
+}
+
+function esimXLSXRow(r: ES): (string | number | Date | null)[] {
+  const specs = parseProductSpecs(r.productName);
+  return [
+    r.user, r.orderId, r.type, r.productName,
+    specs.data, specs.duration,
+    parseExcelDate(r.purchasedDate) as Date | string, r.status,
+  ];
+}
+
 export function ESim() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -292,6 +316,9 @@ export function ESim() {
         searchableFields={["Order ID", "Email"]}
         showPeriod
         showExport
+        exportDisabled={sorted.length === 0}
+        onExportCSV={() => exportCSV(ESIM_HEADERS, sorted.map(esimCSVRow), `esim-${exportDateTag()}.csv`)}
+        onExportXLSX={() => exportXLSX(ESIM_HEADERS, sorted.map(esimXLSXRow), `esim-${exportDateTag()}.xlsx`)}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
           <FilterDropdown

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import { Sidebar } from "./Sidebar";
+import { Toaster } from "sonner";
 import { Menu } from "lucide-react";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -64,6 +65,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <Toaster position="bottom-right" />
     </div>
   );
 }
