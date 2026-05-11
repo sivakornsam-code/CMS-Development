@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Ticket, Users, ShoppingBag, LayoutGrid, Pencil, Check, Image as ImageIcon } from "lucide-react";
 import { mockFastPass, mockUsers } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -305,6 +305,15 @@ export function FastPass() {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("flightDateTime");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("openFastPassId");
+    if (id) {
+      sessionStorage.removeItem("openFastPassId");
+      const record = mockFastPass.find((r) => r.fastpassId === id);
+      if (record) setSelected(record);
+    }
+  }, []);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {

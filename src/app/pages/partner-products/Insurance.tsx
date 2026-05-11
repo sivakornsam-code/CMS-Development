@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Umbrella, FileText, CheckCircle, XCircle } from "lucide-react";
 import { mockInsurance } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -64,10 +64,10 @@ function MiniDash() {
           <XCircle size={16} className="text-orange-500" />
         </div>
         <div>
-          <p className="text-xs text-slate-500">Total Denied</p>
+          <p className="text-xs text-slate-500">Total Rejected</p>
           <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalDenied}</p>
           <p className="text-xs text-slate-400 mt-0.5">
-            {totalSubmitted > 0 ? Math.round((totalDenied / totalSubmitted) * 100) : 0}% denial rate
+            {totalSubmitted > 0 ? Math.round((totalDenied / totalSubmitted) * 100) : 0}% rejection rate
           </p>
         </div>
       </div>
@@ -222,6 +222,15 @@ export function Insurance() {
   const [selected, setSelected] = useState<INS | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("purchasedDate");
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("openInsuranceOrderId");
+    if (id) {
+      sessionStorage.removeItem("openInsuranceOrderId");
+      const record = mockInsurance.find((r) => r.orderId === id);
+      if (record) setSelected(record);
+    }
+  }, []);
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   function handleSort(key: SortKey) {

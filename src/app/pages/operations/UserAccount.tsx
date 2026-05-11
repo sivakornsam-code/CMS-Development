@@ -15,11 +15,6 @@ type User = typeof mockUsers[0] & { status: string };
 
 const userOrders = (email: string) => mockOrders.filter((o) => o.user === email);
 
-const activityLog = [
-  { action: "Purchase", product: "ThaiPass Plus", date: "2025-04-24 09:32" },
-  { action: "Used", product: "Airport Transfer", date: "2025-04-20 14:10" },
-  { action: "Purchase", product: "eSIM 7D Standard", date: "2025-03-15 11:00" },
-];
 
 function InactivateConfirmDialog({
   user,
@@ -79,6 +74,14 @@ function UserDetailModal({
   const orders = userOrders(user.email);
   const [showConfirm, setShowConfirm] = useState(false);
   const [localStatus, setLocalStatus] = useState(user.status);
+  const activityLog = [...orders]
+    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+    .map((o) => ({ action: "Purchase" as const, product: o.product, date: o.created }));
+
+  const parseTHB = (s: string) => parseFloat(s.replace(/,/g, "").replace(" THB", "")) || 0;
+  const totalOrders = orders.length;
+  const totalSpend = orders.reduce((sum, o) => sum + parseTHB(o.total), 0);
+  const totalSpendFormatted = totalSpend.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " THB";
 
   function handleInactivate() {
     setLocalStatus("Inactive");
@@ -134,8 +137,8 @@ function UserDetailModal({
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">User Detail</h4>
               <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
                 {[
-                  ["Email", user.email],
-                  ["Registered Date", formatDate(user.registered)],
+                  ["Account Email", user.email],
+                  ["Registered Date/Time", formatDate(user.registered)],
                   ["User Type", user.userType],
                   ["Partner Source", user.partner],
                   ["TDAC Status", user.tdac],
@@ -163,7 +166,7 @@ function UserDetailModal({
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Total Orders</p>
-                    <p className="text-sm font-semibold text-slate-900">{user.orders}</p>
+                    <p className="text-sm font-semibold text-slate-900">{totalOrders}</p>
                   </div>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
@@ -172,7 +175,7 @@ function UserDetailModal({
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">Total Spending</p>
-                    <p className="text-sm font-semibold text-slate-900">{user.spend}</p>
+                    <p className="text-sm font-semibold text-slate-900">{totalSpendFormatted}</p>
                   </div>
                 </div>
               </div>
@@ -294,6 +297,17 @@ export function UserAccount() {
     : sortByDatetime(filtered, "registered", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const parseTHBTable = (s: string) => parseFloat(s.replace(/,/g, "").replace(" THB", "")) || 0;
+  const userStatsMap: Record<string, { orders: number; spend: string }> = {};
+  for (const u of mockUsers) {
+    const ords = mockOrders.filter((o) => o.user === u.email);
+    const spend = ords.reduce((sum, o) => sum + parseTHBTable(o.total), 0);
+    userStatsMap[u.email] = {
+      orders: ords.length,
+      spend: spend.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " THB",
+    };
+  }
+
   return (
     <div>
       {selectedUser && (
@@ -306,7 +320,7 @@ export function UserAccount() {
 
       <FilterBar
         showSearch
-        searchableFields={["Email"]}
+        searchableFields={["User Account"]}
         showPeriod
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={
@@ -361,7 +375,7 @@ export function UserAccount() {
             </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
-                {["Email", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status"].map((h) => (
+                {["User Account", "Total Orders", "Total Spend", "User Type", "Partner Source", "TDAC Status"].map((h) => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("registered")}>
@@ -380,8 +394,8 @@ export function UserAccount() {
                   onClick={() => setSelectedUser(u)}
                 >
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{u.email}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{u.orders}</td>
-                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{u.spend}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{userStatsMap[u.email]?.orders ?? 0}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{userStatsMap[u.email]?.spend ?? "0 THB"}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.userType} /></td>
                   <td className="px-4 py-3 text-xs text-slate-600">{u.partner}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.tdac} /></td>

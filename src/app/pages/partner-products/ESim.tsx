@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, DollarSign, ShoppingBag, Wifi, TrendingUp } from "lucide-react";
 import { mockEsim } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -279,6 +279,15 @@ export function ESim() {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("purchasedDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("openEsimOrderId");
+    if (id) {
+      sessionStorage.removeItem("openEsimOrderId");
+      const record = mockEsim.find((r) => r.orderId === id && r.type === "Standard");
+      if (record) setSelected(record);
+    }
+  }, []);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {

@@ -48,7 +48,7 @@ export function FilterDropdown({
       >
         {Icon && <Icon size={13} />}
         <span>{displayLabel ?? selected?.label ?? placeholder}</span>
-        <ChevronDown size={13} />
+        <ChevronDown size={11} className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 min-w-full bg-white border border-slate-200 rounded-lg shadow-lg z-10 overflow-hidden">

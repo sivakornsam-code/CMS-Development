@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Download } from "lucide-react";
-import { mockOrders } from "../../data/mockData";
+import { useNavigate } from "react-router";
+import { mockOrders, mockFastPass, mockEsim, mockInsurance } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
@@ -14,6 +15,25 @@ type SortKey = "userType" | "created" | "updated";
 type SortDir = "asc" | "desc";
 
 function OrderDetailModal({ order, onClose }: { order: typeof mockOrders[0]; onClose: () => void }) {
+  const navigate = useNavigate();
+  const bc = (order as typeof mockOrders[0] & { bundleComponents?: { fastpassIds: string[]; esimOrderId: string | null; insuranceOrderId: string | null } }).bundleComponents;
+
+  function viewFastPass(fpId: string) {
+    sessionStorage.setItem("openFastPassId", fpId);
+    onClose();
+    navigate("/partner-products/fastpass");
+  }
+  function viewEsim(orderId: string) {
+    sessionStorage.setItem("openEsimOrderId", orderId);
+    onClose();
+    navigate("/partner-products/esim");
+  }
+  function viewInsurance(orderId: string) {
+    sessionStorage.setItem("openInsuranceOrderId", orderId);
+    onClose();
+    navigate("/partner-products/insurance");
+  }
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -46,6 +66,72 @@ function OrderDetailModal({ order, onClose }: { order: typeof mockOrders[0]; onC
               ))}
             </div>
           </div>
+
+          {order.category === "Bundle" && bc && (
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Bundle Components</h4>
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
+                {bc.fastpassIds.length === 0 && bc.esimOrderId === null && bc.insuranceOrderId === null && (
+                  <p className="text-xs text-slate-400 text-center py-1">No components linked</p>
+                )}
+                {bc.fastpassIds.map((fpId) => {
+                  const fp = mockFastPass.find((r) => r.fastpassId === fpId);
+                  return (
+                    <div key={fpId} className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-xs text-slate-500 block">FastPass</span>
+                        <span className="text-xs font-medium text-slate-800">{fpId}</span>
+                        {fp && <span className="text-xs text-slate-400 block truncate">{fp.airport} · {fp.arrivalDeparture}</span>}
+                      </div>
+                      <button
+                        onClick={() => viewFastPass(fpId)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium shrink-0"
+                      >
+                        View →
+                      </button>
+                    </div>
+                  );
+                })}
+                {bc.esimOrderId && (() => {
+                  const esim = mockEsim.find((r) => r.orderId === bc.esimOrderId && r.type === "Standard");
+                  return (
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-xs text-slate-500 block">eSIM</span>
+                        <span className="text-xs font-medium text-slate-800">{bc.esimOrderId}</span>
+                        {esim && <span className="text-xs text-slate-400 block truncate">{esim.productName}</span>}
+                      </div>
+                      <button
+                        onClick={() => viewEsim(bc.esimOrderId!)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium shrink-0"
+                      >
+                        View →
+                      </button>
+                    </div>
+                  );
+                })()}
+                {bc.insuranceOrderId && (() => {
+                  const ins = mockInsurance.find((r) => r.orderId === bc.insuranceOrderId);
+                  return (
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-xs text-slate-500 block">Insurance</span>
+                        <span className="text-xs font-medium text-slate-800">{bc.insuranceOrderId}</span>
+                        {ins && <span className="text-xs text-slate-400 block truncate">{ins.productName}</span>}
+                      </div>
+                      <button
+                        onClick={() => viewInsurance(bc.insuranceOrderId!)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium shrink-0"
+                      >
+                        View →
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
           <div>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment Detail</h4>
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
