@@ -35,7 +35,8 @@
       "Read(//Users/baby/**)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(python3 -c ' *)",
-      "Bash(awk 'NR>=485 && NR<=495' /Users/baby/Desktop/CMS-Development/src/app/pages/partner-products/Transportation.tsx)"
+      "Bash(awk 'NR>=485 && NR<=495' /Users/baby/Desktop/CMS-Development/src/app/pages/partner-products/Transportation.tsx)",
+      "Bash(npm install *)"
     ]
   }
 }

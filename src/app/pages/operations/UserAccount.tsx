@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { X, ShoppingCart, DollarSign, Activity, AlertCircle, Check } from "lucide-react";
+import { X, ShoppingCart, DollarSign, Activity, AlertCircle, Check, ReceiptText } from "lucide-react";
 import { useNavigate } from "react-router";
-import { mockUsers, mockOrders } from "../../data/mockData";
+import { mockUsers, mockOrders, mockTDAC } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
@@ -12,6 +12,13 @@ import { formatCurrency, formatTHBString, parseTHBString } from "../../data/form
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 const STATUS_PRIORITY = ["Active", "Inactive"];
 type SortKey = "status" | "registered";
+
+function computeTdacStatus(email: string): string {
+  const records = mockTDAC.filter((r) => r.email === email);
+  if (records.length === 0) return "Pending";
+  if (records.some((r) => r.status === "Verified")) return "Verified";
+  return "Expired";
+}
 type SortDir = "asc" | "desc";
 
 type User = typeof mockUsers[0] & { status: string };
@@ -146,13 +153,16 @@ function UserDetailModal({
                   ["Registered Date/Time", formatDate(user.registered)],
                   ["User Type", user.userType],
                   ["Partner Source", user.partner],
-                  ["TDAC Status", user.tdac],
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-4">
                     <span className="text-xs text-slate-500 shrink-0">{label}</span>
                     <span className="text-xs font-medium text-slate-800 text-right">{value}</span>
                   </div>
                 ))}
+                <div className="flex items-start justify-between gap-4">
+                  <span className="text-xs text-slate-500 shrink-0">TDAC Status</span>
+                  <StatusBadge status={user.tdac} />
+                </div>
                 <div className="flex items-start justify-between gap-4">
                   <span className="text-xs text-slate-500 shrink-0">Account Status</span>
                   <StatusBadge status={localStatus} />
@@ -233,16 +243,19 @@ function UserDetailModal({
                 </span>
               </h4>
               <div className="space-y-2">
-                {activityLog.map((a, i) => (
+                {activityLog.length === 0 ? (
+                  <div className="text-xs text-slate-400 text-center py-4">No activity for this user</div>
+                ) : activityLog.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                     <div
                       className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                         a.action === "Purchase" ? "bg-blue-100" : "bg-emerald-100"
                       }`}
                     >
-                      <span className="text-[10px] font-semibold">
-                        {a.action === "Purchase" ? "P" : "U"}
-                      </span>
+                      {a.action === "Purchase"
+                        ? <ReceiptText size={12} className="text-blue-500" />
+                        : <span className="text-[10px] font-semibold">U</span>
+                      }
                     </div>
                     <div className="flex-1">
                       <div className="text-xs font-medium text-slate-800">
@@ -262,7 +275,7 @@ function UserDetailModal({
 }
 
 export function UserAccount() {
-  const [users, setUsers] = useState(mockUsers.map((u) => ({ ...u })));
+  const [users, setUsers] = useState(mockUsers.map((u) => ({ ...u, tdac: computeTdacStatus(u.email) })));
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -365,6 +378,7 @@ export function UserAccount() {
               options={[
                 { label: "All TDAC Status", value: "" },
                 { label: "Verified", value: "Verified" },
+                { label: "Expired", value: "Expired" },
                 { label: "Pending", value: "Pending" },
               ]}
             />

@@ -22,6 +22,7 @@ import {
   BarChart3,
   X,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import thaiPassLogo from "@/app/assets/thai-pass-logo.svg";
 
@@ -163,6 +164,45 @@ function NavSection({ section }: { section: NavSection }) {
   );
 }
 
+function LogoutModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center mb-4">
+            <LogOut size={18} className="text-rose-500" />
+          </div>
+          <h2 className="text-slate-900 text-lg font-semibold">Log out of your account?</h2>
+          <p className="text-slate-500 text-sm mt-2 leading-relaxed">
+            You're about to log out. You'll need to sign in again to continue managing the system.
+          </p>
+          <div className="flex items-center justify-end gap-2.5 mt-6">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { /* handle logout */ onClose(); }}
+              className="px-4 py-2 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <LogOut size={14} strokeWidth={2.5} />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar({
   open,
   onClose,
@@ -170,6 +210,7 @@ export function Sidebar({
   open: boolean;
   onClose: () => void;
 }) {
+  const [showLogout, setShowLogout] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -228,9 +269,18 @@ export function Sidebar({
               <div className="text-slate-300 text-xs font-medium truncate">Admin User</div>
               <div className="text-slate-500 text-xs truncate">admin@thaipass.com</div>
             </div>
+            <button
+              onClick={() => setShowLogout(true)}
+              className="text-slate-500 hover:text-rose-400 transition-colors shrink-0 cursor-pointer"
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
+
+      {showLogout && <LogoutModal onClose={() => setShowLogout(false)} />}
     </>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { X, Download } from "lucide-react";
+import { toast } from "sonner";
+import { generateTDACPDF } from "./generateTDACPDF";
 import { mockTDAC } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
@@ -8,25 +10,48 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
-const STATUS_PRIORITY = ["Active", "Expired"];
+const STATUS_PRIORITY = ["Verified", "Expired"];
 type SortKey = "status" | "submittedAt" | "updatedAt";
 type SortDir = "asc" | "desc";
 
 type TDAC = typeof mockTDAC[0];
 
 function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void }) {
+  const [downloading, setDownloading] = useState(false);
   useBodyScrollLock();
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      await generateTDACPDF(record);
+      toast.success("PDF ready — downloading...");
+    } catch {
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">TDAC Detail</h3>
             <p className="text-xs text-slate-500">{record.email}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+            >
+              <Download size={12} />
+              {downloading ? "Generating..." : "Download PDF"}
+            </button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -103,11 +128,6 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
             </div>
           </div>
 
-          {/* Download PDF */}
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer">
-            <Download size={14} />
-            Download PDF
-          </button>
         </div>
       </div>
     </div>
@@ -162,7 +182,7 @@ export function TDACList() {
             placeholder="All Statuses"
             options={[
               { label: "All Statuses", value: "" },
-              { label: "Active", value: "Active" },
+              { label: "Verified", value: "Verified" },
               { label: "Expired", value: "Expired" },
             ]}
           />
