@@ -7,6 +7,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 const STATUS_PRIORITY = ["Active", "Expired"];
 type SortKey = "status" | "submittedAt" | "updatedAt";
 type SortDir = "asc" | "desc";
@@ -14,6 +15,7 @@ type SortDir = "asc" | "desc";
 type TDAC = typeof mockTDAC[0];
 
 function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void }) {
+  useBodyScrollLock();
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col">
@@ -22,7 +24,7 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
             <h3 className="text-sm font-semibold text-slate-900">TDAC Detail</h3>
             <p className="text-xs text-slate-500">{record.email}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -102,7 +104,7 @@ function DetailModal({ record, onClose }: { record: TDAC; onClose: () => void })
           </div>
 
           {/* Download PDF */}
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer">
             <Download size={14} />
             Download PDF
           </button>
@@ -150,7 +152,7 @@ export function TDACList() {
 
       <FilterBar
         showSearch
-        searchableFields={["Email", "Arrival Card No."]}
+        searchableFields={["User Account", "Arrival Card No."]}
         showPeriod
         onSearch={(q) => { setSearch(q); setPage(1); }}
         extraFilters={

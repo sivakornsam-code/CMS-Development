@@ -35,7 +35,7 @@ export function TablePagination({ total, page, pageSize, onPageChange }: TablePa
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
         >
           <ChevronLeft size={14} />
         </button>
@@ -46,7 +46,7 @@ export function TablePagination({ total, page, pageSize, onPageChange }: TablePa
             <button
               key={p}
               onClick={() => onPageChange(p as number)}
-              className={`min-w-[28px] h-7 px-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`min-w-[28px] h-7 px-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 p === page ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
@@ -57,7 +57,7 @@ export function TablePagination({ total, page, pageSize, onPageChange }: TablePa
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
         >
           <ChevronRight size={14} />
         </button>

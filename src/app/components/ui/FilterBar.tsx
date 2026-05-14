@@ -91,7 +91,7 @@ function DateRangePopover({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+            className="px-3 py-1.5 text-xs text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer"
           >
             Cancel
           </button>
@@ -99,7 +99,7 @@ function DateRangePopover({
             type="button"
             disabled={!range?.from || !range?.to}
             onClick={() => range?.from && range?.to && onApply(range)}
-            className="px-3 py-1.5 text-xs text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-xs text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             Apply
           </button>
@@ -274,13 +274,13 @@ export function FilterBar({
               <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden min-w-[180px]">
                 <button
                   onClick={() => handleExport("csv")}
-                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Export as CSV
                 </button>
                 <button
                   onClick={() => handleExport("xlsx")}
-                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Export as Excel (.xlsx)
                 </button>
@@ -291,7 +291,7 @@ export function FilterBar({
         {showCreate && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer"
           >
             <Plus size={13} />
             {createLabel}

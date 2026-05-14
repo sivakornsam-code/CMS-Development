@@ -6,6 +6,7 @@ import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 const entities = ["Bangkok Air Services", "AIS eSIM", "Indian TTT", "TrueMove H", "Muang Thai Life", "AOT FastPass", "Agoda Travel", "KKday Thailand"];
 const FLOW_PRIORITY = ["Payout", "Return"];
@@ -14,6 +15,7 @@ type SortKey = "flow" | "updated";
 type SortDir = "asc" | "desc";
 
 function CreatePaymentModal({ onClose }: { onClose: () => void }) {
+  useBodyScrollLock();
   const [flow, setFlow] = useState("Payout");
   const [entity, setEntity] = useState("");
   const [amount, setAmount] = useState("");
@@ -24,7 +26,7 @@ function CreatePaymentModal({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-900">Create Payment</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -47,7 +49,7 @@ function CreatePaymentModal({ onClose }: { onClose: () => void }) {
                 <button
                   key={f}
                   onClick={() => setFlow(f)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                     flow === f ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -85,10 +87,10 @@ function CreatePaymentModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100">
-          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">
+          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 cursor-pointer">
             Cancel
           </button>
-          <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">
+          <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer">
             Submit
           </button>
         </div>
@@ -169,7 +171,7 @@ export function DashboardCommission() {
           <h3 className="text-sm font-semibold text-slate-900">Payment Management</h3>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer"
           >
             <Plus size={13} />
             Create Payment
@@ -221,7 +223,7 @@ export function DashboardCommission() {
                   <td className="py-2.5 pr-4 text-xs text-slate-700 font-medium">{formatCurrency(p.amount)}</td>
                   <td className="py-2.5 pr-4 text-xs text-slate-500">{formatDate(p.updatedAt)}</td>
                   <td className="py-2.5 text-right">
-                    <button className="text-xs text-blue-600 hover:underline">Edit</button>
+                    <button className="text-xs text-blue-600 hover:underline cursor-pointer">Edit</button>
                   </td>
                 </tr>
               ))}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { X, DollarSign, ShoppingBag, Wifi, TrendingUp } from "lucide-react";
 import { mockEsim } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -8,6 +9,8 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
+import { formatCurrency, formatTHBString, parseTHBString } from "../../data/formatters";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 type ES = typeof mockEsim[0];
 
@@ -31,9 +34,7 @@ function parseProductSpecs(productName: string): { data: string; duration: strin
 }
 
 function MiniDash() {
-  const totalRevenue = mockEsim.reduce((sum, r) => {
-    return sum + parseFloat(r.total.replace(/,/g, "").replace(" THB", ""));
-  }, 0);
+  const totalRevenue = mockEsim.reduce((sum, r) => sum + parseTHBString(r.total), 0);
 
   const totalOrders = mockEsim.length;
 
@@ -64,7 +65,7 @@ function MiniDash() {
           </div>
           <div>
             <p className="text-xs text-slate-500">Total Revenue</p>
-            <p className="text-xl font-semibold text-slate-900 mt-0.5">฿{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-xl font-semibold text-slate-900 mt-0.5">{formatCurrency(totalRevenue)}</p>
             <p className="text-xs text-slate-400 mt-0.5">All eSIM orders</p>
           </div>
         </div>
@@ -158,21 +159,33 @@ function TypeBadge({ type }: { type: "Standard" | "Top-up" }) {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-transparent">Standard</span>;
 }
 
-function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: () => void; onOpenOrder: (r: ES) => void }) {
+function DetailModal({ record, onClose, onOpenOrder, onBack, onBackToChild, backToChildLabel }: { record: ES; onClose: () => void; onOpenOrder: (r: ES) => void; onBack?: () => void; onBackToChild?: () => void; backToChildLabel?: string }) {
+  useBodyScrollLock();
   const specs = parseProductSpecs(record.productName);
   const parentRecord = record.type === "Top-up" && record.parentOrderId
     ? mockEsim.find((r) => r.orderId === record.parentOrderId) ?? null
     : null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full sm:max-w-lg flex flex-col">
+        {(onBackToChild || onBack) && (
+          <div className="px-4 sm:px-0 pb-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white bg-black/25 hover:bg-black/40 rounded-full px-3 py-1.5 transition-colors cursor-pointer"
+              onClick={onBackToChild ?? onBack}
+            >
+              ← {onBackToChild ? (backToChildLabel ?? "Back") : "Back to Order"}
+            </button>
+          </div>
+        )}
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Order Details</h3>
             <p className="text-xs text-slate-500">{record.orderId}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -196,7 +209,6 @@ function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: ()
               ...(record.type === "Standard" ? [["Purchase From", resolvePurchaseFrom(record)] as [string, string]] : []),
               ["ICCID", record.iccid],
               ["Vendor Source Package Code", record.vendorCode],
-              ["Purchased Date / Time", formatDate(record.purchasedDate)],
             ] as [string, string][]}
           </Section>
 
@@ -206,23 +218,23 @@ function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: ()
             <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
               <div className="flex items-start justify-between gap-4">
                 <span className="text-xs text-slate-500 shrink-0">Order ID</span>
-                <div className="text-right">
-                  <span className="text-xs font-medium text-slate-800">{record.orderId}</span>
+                <span className="text-xs font-medium text-slate-800 text-right">
+                  {record.orderId}
                   {parentRecord && (
                     <button
-                      className="block text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 ml-auto"
+                      className="block text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 ml-auto cursor-pointer"
                       onClick={(e) => { e.stopPropagation(); onOpenOrder(parentRecord); }}
                     >
                       Parent: {record.parentOrderId}
                     </button>
                   )}
-                </div>
+                </span>
               </div>
               {([
-                ["Payment Date / Time", formatDate(record.paymentDate)],
+                ["Payment Date/Time", formatDate(record.purchasedDate)],
                 ["Payment Method", record.paymentMethod],
-                ["Subtotal", record.subtotal],
-                ["Total", record.total],
+                ["Subtotal", formatTHBString(record.subtotal)],
+                ["Total", formatTHBString(record.total)],
               ] as [string, string][]).map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4">
                   <span className="text-xs text-slate-500 shrink-0">{label}</span>
@@ -245,13 +257,14 @@ function DetailModal({ record, onClose, onOpenOrder }: { record: ES; onClose: ()
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
 const ESIM_HEADERS = [
   "User Account", "Order ID", "Type", "Product Name", "Data", "Duration",
-  "Purchased Date/Time", "Status",
+  "Payment Date/Time", "Status",
 ];
 
 function esimCSVRow(r: ES): string[] {
@@ -273,18 +286,49 @@ function esimXLSXRow(r: ES): (string | number | Date | null)[] {
 }
 
 export function ESim() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<ES | null>(null);
+  const [previousSelected, setPreviousSelected] = useState<ES | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
+  const [returnUserEmail, setReturnUserEmail] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("purchasedDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
-    const id = sessionStorage.getItem("openEsimOrderId");
+    const id = sessionStorage.getItem("returnToOrderId");
     if (id) {
+      sessionStorage.removeItem("returnToOrderId");
+      setReturnOrderId(id);
+    }
+    const email = sessionStorage.getItem("returnToUserEmail");
+    if (email) {
+      sessionStorage.removeItem("returnToUserEmail");
+      setReturnUserEmail(email);
+    }
+  }, []);
+
+  function handleBack() {
+    sessionStorage.setItem("openOrderId", returnOrderId!);
+    if (returnUserEmail) sessionStorage.setItem("returnToUserEmail", returnUserEmail);
+    setReturnOrderId(null);
+    navigate("/operations/orders");
+  }
+
+  useEffect(() => {
+    const iccid = sessionStorage.getItem("openEsimIccid");
+    if (iccid) {
+      sessionStorage.removeItem("openEsimIccid");
+      const record = mockEsim.find((r) => r.iccid === iccid);
+      if (record) setSelected(record);
+      return;
+    }
+    const orderId = sessionStorage.getItem("openEsimOrderId");
+    if (orderId) {
       sessionStorage.removeItem("openEsimOrderId");
-      const record = mockEsim.find((r) => r.orderId === id && r.type === "Standard");
+      const record = mockEsim.find((r) => r.orderId === orderId);
       if (record) setSelected(record);
     }
   }, []);
@@ -316,13 +360,22 @@ export function ESim() {
 
   return (
     <div>
-      {selected && <DetailModal record={selected} onClose={() => setSelected(null)} onOpenOrder={(r) => setSelected(r)} />}
+      {selected && (
+        <DetailModal
+          record={selected}
+          onClose={() => { setSelected(null); setPreviousSelected(null); setReturnOrderId(null); }}
+          onOpenOrder={(r) => { setPreviousSelected(selected); setSelected(r); }}
+          onBack={!previousSelected && returnOrderId ? handleBack : undefined}
+          onBackToChild={previousSelected ? () => { setSelected(previousSelected); setPreviousSelected(null); } : undefined}
+          backToChildLabel={previousSelected ? `Back to ${previousSelected.orderId}` : undefined}
+        />
+      )}
 
       <MiniDash />
 
       <FilterBar
         showSearch
-        searchableFields={["Order ID", "Email"]}
+        searchableFields={["Order ID", "User Account"]}
         showPeriod
         showExport
         exportDisabled={sorted.length === 0}
@@ -353,7 +406,7 @@ export function ESim() {
               <col style={{ width: "180px" }} />{/* Product Name */}
               <col style={{ width: "80px" }} />{/* Data */}
               <col style={{ width: "90px" }} />{/* Duration */}
-              <col style={{ width: "160px" }} />{/* Purchased Date/Time */}
+              <col style={{ width: "160px" }} />{/* Payment Date/Time */}
               <col style={{ width: "130px" }} />{/* Status */}
             </colgroup>
             <thead>
@@ -362,7 +415,7 @@ export function ESim() {
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("purchasedDate")}>
-                  <span className="inline-flex items-center gap-1">Purchased Date/Time<SortIndicator active={sortKey === "purchasedDate"} direction={sortDir} /></span>
+                  <span className="inline-flex items-center gap-1">Payment Date/Time<SortIndicator active={sortKey === "purchasedDate"} direction={sortDir} /></span>
                 </th>
                 <th className="sticky right-0 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
                   <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
@@ -371,7 +424,7 @@ export function ESim() {
             </thead>
             <tbody>
               {paginated.map((r) => (
-                <tr key={r.orderId} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
+                <tr key={`${r.orderId}-${r.iccid}`} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.orderId}</td>
                   <td className="px-4 py-3 text-xs whitespace-nowrap">

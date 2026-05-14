@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { X, Umbrella, FileText, CheckCircle, XCircle } from "lucide-react";
 import { mockInsurance } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -8,6 +9,8 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
+import { formatTHBString } from "../../data/formatters";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 type INS = typeof mockInsurance[0];
 
@@ -91,16 +94,28 @@ function Section({ title, children }: { title: string; children: [string, string
   );
 }
 
-function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) {
+function DetailModal({ record, onClose, onBack }: { record: INS; onClose: () => void; onBack?: () => void }) {
+  useBodyScrollLock();
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full sm:max-w-xl flex flex-col">
+        {onBack && (
+          <div className="px-4 sm:px-0 pb-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white bg-black/25 hover:bg-black/40 rounded-full px-3 py-1.5 transition-colors cursor-pointer"
+              onClick={onBack}
+            >
+              ← Back to Order
+            </button>
+          </div>
+        )}
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Insurance Detail</h3>
             <p className="text-xs text-slate-500">{record.orderId}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -161,10 +176,10 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
           <Section title="Payment Details">
             {[
               ["Order ID", record.orderId],
-              ["Payment Date / Time", formatDate(record.paymentDate)],
+              ["Payment Date/Time", formatDate(record.paymentDate)],
               ["Payment Method", record.paymentMethod],
-              ["Subtotal", record.subtotal],
-              ["Total", record.total],
+              ["Subtotal", formatTHBString(record.subtotal)],
+              ["Total", formatTHBString(record.total)],
             ]}
           </Section>
 
@@ -190,6 +205,7 @@ function DetailModal({ record, onClose }: { record: INS; onClose: () => void }) 
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -217,17 +233,47 @@ function insXLSXRow(r: INS): (string | number | Date | null)[] {
 }
 
 export function Insurance() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<INS | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
+  const [returnUserEmail, setReturnUserEmail] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("purchasedDate");
 
   useEffect(() => {
-    const id = sessionStorage.getItem("openInsuranceOrderId");
+    const id = sessionStorage.getItem("returnToOrderId");
     if (id) {
+      sessionStorage.removeItem("returnToOrderId");
+      setReturnOrderId(id);
+    }
+    const email = sessionStorage.getItem("returnToUserEmail");
+    if (email) {
+      sessionStorage.removeItem("returnToUserEmail");
+      setReturnUserEmail(email);
+    }
+  }, []);
+
+  function handleBack() {
+    sessionStorage.setItem("openOrderId", returnOrderId!);
+    if (returnUserEmail) sessionStorage.setItem("returnToUserEmail", returnUserEmail);
+    setReturnOrderId(null);
+    navigate("/operations/orders");
+  }
+
+  useEffect(() => {
+    const refId = sessionStorage.getItem("openInsuranceRefId");
+    if (refId) {
+      sessionStorage.removeItem("openInsuranceRefId");
+      const record = mockInsurance.find((r) => r.referenceId === refId);
+      if (record) setSelected(record);
+      return;
+    }
+    const orderId = sessionStorage.getItem("openInsuranceOrderId");
+    if (orderId) {
       sessionStorage.removeItem("openInsuranceOrderId");
-      const record = mockInsurance.find((r) => r.orderId === id);
+      const record = mockInsurance.find((r) => r.orderId === orderId);
       if (record) setSelected(record);
     }
   }, []);
@@ -260,13 +306,13 @@ export function Insurance() {
 
   return (
     <div>
-      {selected && <DetailModal record={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailModal record={selected} onClose={() => { setSelected(null); setReturnOrderId(null); }} onBack={returnOrderId ? handleBack : undefined} />}
 
       <MiniDash />
 
       <FilterBar
         showSearch
-        searchableFields={["Order ID", "Email"]}
+        searchableFields={["Order ID", "User Account"]}
         showPeriod
         showExport
         exportDisabled={sorted.length === 0}
@@ -313,7 +359,7 @@ export function Insurance() {
             </thead>
             <tbody>
               {paginated.map((r) => (
-                <tr key={r.orderId} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
+                <tr key={r.referenceId ?? `${r.orderId}-${r.passportNo}`} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(r)}>
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{r.user}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">{r.orderId}</td>
                   <td className="px-4 py-3 text-xs text-slate-700 truncate">{r.productName}</td>

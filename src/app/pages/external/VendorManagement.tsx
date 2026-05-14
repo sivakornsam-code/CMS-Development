@@ -6,6 +6,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 const PAGE_SIZE = 5;
 const STATUS_PRIORITY = ["Active", "Inactive"];
@@ -21,6 +22,7 @@ const emptyVendor: Omit<Vendor, "id" | "created" | "updated"> = {
 function VendorForm({ vendor, onClose, onSave, title }: {
   vendor?: Vendor; onClose: () => void; onSave: (v: Partial<Vendor>) => void; title: string;
 }) {
+  useBodyScrollLock();
   const [form, setForm] = useState<Partial<Vendor>>(vendor || { ...emptyVendor });
   const [notes, setNotes] = useState("");
 
@@ -31,7 +33,7 @@ function VendorForm({ vendor, onClose, onSave, title }: {
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Basic Info</p>
@@ -62,7 +64,7 @@ function VendorForm({ vendor, onClose, onSave, title }: {
                 <button
                   key={s}
                   onClick={() => set("status", s)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                     form.status === s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -83,8 +85,8 @@ function VendorForm({ vendor, onClose, onSave, title }: {
           </div>
         </div>
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100 shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Cancel</button>
-          <button onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">
+          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 cursor-pointer">Cancel</button>
+          <button onClick={() => { onSave(form); onClose(); }} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer">
             {vendor ? "Save Changes" : "Create Vendor"}
           </button>
         </div>
@@ -94,12 +96,13 @@ function VendorForm({ vendor, onClose, onSave, title }: {
 }
 
 function VendorDetailModal({ vendor, onClose, onEdit }: { vendor: Vendor; onClose: () => void; onEdit: () => void }) {
+  useBodyScrollLock();
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-900">Vendor Detail</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
@@ -127,8 +130,8 @@ function VendorDetailModal({ vendor, onClose, onEdit }: { vendor: Vendor; onClos
           ))}
         </div>
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100">
-          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Close</button>
-          <button onClick={onEdit} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">Edit Vendor</button>
+          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 cursor-pointer">Close</button>
+          <button onClick={onEdit} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer">Edit Vendor</button>
         </div>
       </div>
     </div>
@@ -224,8 +227,8 @@ export function VendorManagement() {
                   </td>
                   <td className="sticky right-0 w-24 bg-white border-l border-slate-100 px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="text-xs text-slate-600 hover:text-blue-600" onClick={() => setViewVendor(v)}>View</button>
-                      <button className="text-xs text-blue-600 hover:underline" onClick={() => setEditVendor(v)}>Edit</button>
+                      <button className="text-xs text-slate-600 hover:text-blue-600 cursor-pointer" onClick={() => setViewVendor(v)}>View</button>
+                      <button className="text-xs text-blue-600 hover:underline cursor-pointer" onClick={() => setEditVendor(v)}>Edit</button>
                     </div>
                   </td>
                 </tr>

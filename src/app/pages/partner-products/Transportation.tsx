@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { X, DollarSign, Car, MapPin, Pencil, Check, ChevronDown, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { mockTransportation } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -8,6 +9,8 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, formatDateTime, sortByStatusWithDate, sortByDatetime, sortByDatetimePair } from "../../components/ui/utils";
 import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
+import { formatCurrency, formatTHBString, parseTHBString } from "../../data/formatters";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 type TR = typeof mockTransportation[0];
 
@@ -22,7 +25,7 @@ function MiniDash() {
 
   const totalRevenue = mockTransportation
     .filter((r) => r.status === "Complete")
-    .reduce((sum, r) => sum + parseFloat(r.subtotal.replace(/,/g, "")), 0);
+    .reduce((sum, r) => sum + parseTHBString(r.subtotal), 0);
   const airportCount = mockTransportation.filter((r) => r.serviceType === "Airport Transfer").length;
   const chauffeurCount = mockTransportation.filter((r) => r.serviceType === "Chauffeur Service").length;
 
@@ -48,7 +51,7 @@ function MiniDash() {
         </div>
         <div>
           <p className="text-xs text-slate-500">Total Revenue</p>
-          <p className="text-xl font-semibold text-slate-900 mt-0.5">฿{totalRevenue.toLocaleString()}</p>
+          <p className="text-xl font-semibold text-slate-900 mt-0.5">{formatCurrency(totalRevenue)}</p>
           <p className="text-xs text-slate-400 mt-0.5">All confirmed bookings</p>
         </div>
       </div>
@@ -105,7 +108,7 @@ function MiniDash() {
         {hiddenCount > 0 && (
           <button
             onClick={() => setShowAllDropoff((v) => !v)}
-            className="mt-1.5 text-xs text-blue-500 hover:text-blue-700 font-medium"
+            className="mt-1.5 text-xs text-blue-500 hover:text-blue-700 font-medium cursor-pointer"
           >
             {showAllDropoff ? "Show less" : `+ ${hiddenCount} more`}
           </button>
@@ -195,7 +198,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs hover:bg-slate-50"
+        className="w-full flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs hover:bg-slate-50 cursor-pointer"
       >
         <span className={value ? "text-slate-700" : "text-slate-400"}>{displayLabel}</span>
         <CalendarDays size={13} className="text-slate-400 shrink-0" />
@@ -205,11 +208,11 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
         <div className="absolute top-full left-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-4 w-64">
           {/* Month nav */}
           <div className="flex items-center justify-between mb-4">
-            <button type="button" onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+            <button type="button" onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer">
               <ChevronLeft size={14} />
             </button>
             <span className="text-xs font-semibold text-slate-800">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-            <button type="button" onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+            <button type="button" onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer">
               <ChevronRight size={14} />
             </button>
           </div>
@@ -232,7 +235,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
                   type="button"
                   onClick={() => { const d = cell.date; onChange(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`); setOpen(false); }}
                   className={[
-                    "relative h-8 w-full flex items-center justify-center rounded-lg text-[11px] font-medium transition-colors",
+                    "relative h-8 w-full flex items-center justify-center rounded-lg text-[11px] font-medium transition-colors cursor-pointer",
                     isSel
                       ? "bg-blue-600 text-white shadow-sm"
                       : isToday
@@ -253,7 +256,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
             <button
               type="button"
               onClick={() => { onChange(""); setOpen(false); }}
-              className="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors cursor-pointer"
             >
               Clear
             </button>
@@ -265,7 +268,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
                 setViewYear(today.getFullYear());
                 setOpen(false);
               }}
-              className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+              className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors cursor-pointer"
             >
               Today
             </button>
@@ -346,7 +349,7 @@ function BookingForm({
           <button
             type="button"
             onClick={() => setTimeOpen((v) => !v)}
-            className="w-full flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50"
+            className="w-full flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
             <span>{pickUpTime}</span>
             <ChevronDown size={13} className="text-slate-400 shrink-0" />
@@ -360,7 +363,7 @@ function BookingForm({
                     type="button"
                     {...(t === pickUpTime ? { "data-selected": true } : {})}
                     onClick={() => { setPickUpTime(t); setTimeOpen(false); }}
-                    className={`block w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${
+                    className={`block w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer ${
                       t === pickUpTime ? "text-blue-600 font-medium bg-blue-50" : "text-slate-700"
                     }`}
                   >
@@ -391,14 +394,14 @@ function BookingForm({
       <div className="flex gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100"
+          className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer"
         >
           Cancel
         </button>
         <button
           onClick={() => onSave({ pickUpDate, pickUpTime, dropOffDate })}
           disabled={!hasChanged}
-          className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+          className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600 cursor-pointer"
         >
           <Check size={12} /> Save changes
         </button>
@@ -469,14 +472,14 @@ function DriverForm({
       <div className="flex gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100"
+          className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-100 cursor-pointer"
         >
           Cancel
         </button>
         <button
           onClick={() => onSave(form)}
           disabled={!canSubmit}
-          className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+          className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600 cursor-pointer"
         >
           <Check size={12} /> {submitLabel}
         </button>
@@ -486,11 +489,13 @@ function DriverForm({
 }
 
 
-function DetailModal({ record, onClose, onUpdateBooking }: {
+function DetailModal({ record, onClose, onUpdateBooking, onBack }: {
   record: TR;
   onClose: () => void;
   onUpdateBooking: (id: string, fields: BookingDateFields) => void;
+  onBack?: () => void;
 }) {
+  useBodyScrollLock();
   const [status, setStatus] = useState(record.status);
   const [driver, setDriver] = useState<DriverFields>({
     driverName:    record.driverName    || "",
@@ -553,8 +558,19 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full sm:max-w-xl flex flex-col">
+        {onBack && (
+          <div className="px-4 sm:px-0 pb-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white bg-black/25 hover:bg-black/40 rounded-full px-3 py-1.5 transition-colors cursor-pointer"
+              onClick={onBack}
+            >
+              ← Back to Order
+            </button>
+          </div>
+        )}
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Booking Detail</h3>
@@ -564,7 +580,7 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
             {status === "Pending" && !showDriverForm && (
               <button
                 onClick={() => { setShowBookingForm(false); openDriverForm(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
               >
                 <Car size={12} /> Assign Driver
               </button>
@@ -572,12 +588,12 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
             {status === "Assigned" && !showDriverForm && (
               <button
                 onClick={() => { setShowBookingForm(false); openDriverForm(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
                 <Pencil size={12} /> Edit Driver
               </button>
             )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
           </div>
         </div>
 
@@ -597,7 +613,7 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
               {canEditBooking && !showBookingForm && (
                 <button
                   onClick={() => { setShowDriverForm(false); setShowBookingForm(true); }}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium px-2"
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium px-2 cursor-pointer"
                 >
                   <Pencil size={11} /> Edit
                 </button>
@@ -728,10 +744,10 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
           <Section title="Payment Details">
             {[
               ["Order ID",        record.orderId],
-              ["Payment Date",    formatDate(record.paymentDate)],
+              ["Payment Date/Time", formatDate(record.paymentDate)],
               ["Payment Method",  record.paymentMethod],
-              ["Subtotal",        record.subtotal],
-              ["Total",           record.total],
+              ["Subtotal",        formatTHBString(record.subtotal)],
+              ["Total",           formatTHBString(record.total)],
             ]}
           </Section>
 
@@ -754,6 +770,7 @@ function DetailModal({ record, onClose, onUpdateBooking }: {
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -775,7 +792,7 @@ function BookingTabs({ value, onChange, pendingCount }: {
           <button
             key={t.key}
             onClick={() => onChange(t.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap cursor-pointer ${
               isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -833,12 +850,51 @@ function trXLSXRow(r: TR): (string | number | Date | null)[] {
 }
 
 export function Transportation() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [bookingTab, setBookingTab] = useState<"all" | "pending">("all");
   const [selected, setSelected] = useState<TR | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
+  const [returnUserEmail, setReturnUserEmail] = useState<string | null>(null);
   const [rows, setRows] = useState(() => [...mockTransportation]);
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("returnToOrderId");
+    if (id) {
+      sessionStorage.removeItem("returnToOrderId");
+      setReturnOrderId(id);
+    }
+    const email = sessionStorage.getItem("returnToUserEmail");
+    if (email) {
+      sessionStorage.removeItem("returnToUserEmail");
+      setReturnUserEmail(email);
+    }
+  }, []);
+
+  function handleBack() {
+    sessionStorage.setItem("openOrderId", returnOrderId!);
+    if (returnUserEmail) sessionStorage.setItem("returnToUserEmail", returnUserEmail);
+    setReturnOrderId(null);
+    navigate("/operations/orders");
+  }
+
+  useEffect(() => {
+    const bookingId = sessionStorage.getItem("openTransportBookingId");
+    if (bookingId) {
+      sessionStorage.removeItem("openTransportBookingId");
+      const record = mockTransportation.find((r) => r.bookingId === bookingId);
+      if (record) setSelected(record);
+      return;
+    }
+    const orderId = sessionStorage.getItem("openTransportOrderId");
+    if (orderId) {
+      sessionStorage.removeItem("openTransportOrderId");
+      const record = mockTransportation.find((r) => r.orderId === orderId);
+      if (record) setSelected(record);
+    }
+  }, []);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -885,7 +941,7 @@ export function Transportation() {
 
   return (
     <div>
-      {selected && <DetailModal key={selected.bookingId} record={selected} onClose={() => setSelected(null)} onUpdateBooking={handleUpdateBooking} />}
+      {selected && <DetailModal key={selected.bookingId} record={selected} onClose={() => { setSelected(null); setReturnOrderId(null); }} onUpdateBooking={handleUpdateBooking} onBack={returnOrderId ? handleBack : undefined} />}
 
       <MiniDash />
 
@@ -893,7 +949,7 @@ export function Transportation() {
 
       <FilterBar
         showSearch
-        searchableFields={["Order ID", "Booking ID", "Email", "Passenger Name", "Driver Name"]}
+        searchableFields={["Order ID", "Booking ID", "User Account", "Passenger Name", "Driver Name"]}
         showPeriod
         showExport
         exportDisabled={sorted.length === 0}

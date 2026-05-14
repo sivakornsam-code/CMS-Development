@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ShoppingCart, DollarSign, Activity, AlertCircle, Check } from "lucide-react";
+import { useNavigate } from "react-router";
 import { mockUsers, mockOrders } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
@@ -7,6 +8,8 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
+import { formatCurrency, formatTHBString, parseTHBString } from "../../data/formatters";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 const STATUS_PRIORITY = ["Active", "Inactive"];
 type SortKey = "status" | "registered";
 type SortDir = "asc" | "desc";
@@ -25,6 +28,7 @@ function InactivateConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useBodyScrollLock();
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
@@ -46,13 +50,13 @@ function InactivateConfirmDialog({
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium transition-colors"
+            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium transition-colors cursor-pointer"
           >
             Inactivate
           </button>
@@ -71,17 +75,18 @@ function UserDetailModal({
   onClose: () => void;
   onStatusChange: (email: string, status: string) => void;
 }) {
+  useBodyScrollLock();
   const orders = userOrders(user.email);
+  const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
   const [localStatus, setLocalStatus] = useState(user.status);
   const activityLog = [...orders]
     .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
     .map((o) => ({ action: "Purchase" as const, product: o.product, date: o.created }));
 
-  const parseTHB = (s: string) => parseFloat(s.replace(/,/g, "").replace(" THB", "")) || 0;
   const totalOrders = orders.length;
-  const totalSpend = orders.reduce((sum, o) => sum + parseTHB(o.total), 0);
-  const totalSpendFormatted = totalSpend.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " THB";
+  const totalSpend = orders.reduce((sum, o) => sum + parseTHBString(o.total), 0);
+  const totalSpendFormatted = formatCurrency(totalSpend);
 
   function handleInactivate() {
     setLocalStatus("Inactive");
@@ -114,19 +119,19 @@ function UserDetailModal({
               {localStatus === "Active" ? (
                 <button
                   onClick={() => setShowConfirm(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   <X size={12} /> Inactivate
                 </button>
               ) : (
                 <button
                   onClick={handleReactivate}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-emerald-200 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
                 >
                   <Check size={12} /> Reactivate
                 </button>
               )}
-              <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -201,11 +206,11 @@ function UserDetailModal({
                   <tbody>
                     {orders.length > 0 ? (
                       orders.map((o) => (
-                        <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer">
+                        <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => { sessionStorage.setItem("openOrderId", o.id); sessionStorage.setItem("returnToUserEmail", user.email); navigate("/operations/orders"); }}>
                           <td className="px-3 py-2 text-xs text-blue-600 font-medium">{o.id}</td>
                           <td className="px-3 py-2 text-xs text-slate-600">{o.category}</td>
                           <td className="px-3 py-2 text-xs text-slate-700">{o.product}</td>
-                          <td className="px-3 py-2 text-xs text-slate-700 font-medium">{o.total}</td>
+                          <td className="px-3 py-2 text-xs text-slate-700 font-medium">{formatTHBString(o.total)}</td>
                         </tr>
                       ))
                     ) : (
@@ -260,6 +265,15 @@ export function UserAccount() {
   const [users, setUsers] = useState(mockUsers.map((u) => ({ ...u })));
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const email = sessionStorage.getItem("openUserEmail");
+    if (email) {
+      sessionStorage.removeItem("openUserEmail");
+      const user = mockUsers.find((u) => u.email === email);
+      if (user) setSelectedUser({ ...user });
+    }
+  }, []);
   const [userTypeFilter, setUserTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [tdacFilter, setTdacFilter] = useState("");
@@ -297,14 +311,13 @@ export function UserAccount() {
     : sortByDatetime(filtered, "registered", sortDir);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const parseTHBTable = (s: string) => parseFloat(s.replace(/,/g, "").replace(" THB", "")) || 0;
   const userStatsMap: Record<string, { orders: number; spend: string }> = {};
   for (const u of mockUsers) {
     const ords = mockOrders.filter((o) => o.user === u.email);
-    const spend = ords.reduce((sum, o) => sum + parseTHBTable(o.total), 0);
+    const spend = ords.reduce((sum, o) => sum + parseTHBString(o.total), 0);
     userStatsMap[u.email] = {
       orders: ords.length,
-      spend: spend.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " THB",
+      spend: formatCurrency(spend),
     };
   }
 
@@ -395,7 +408,7 @@ export function UserAccount() {
                 >
                   <td className="px-4 py-3 text-xs text-blue-600 font-medium truncate">{u.email}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{userStatsMap[u.email]?.orders ?? 0}</td>
-                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{userStatsMap[u.email]?.spend ?? "0 THB"}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{userStatsMap[u.email]?.spend ?? formatCurrency(0)}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.userType} /></td>
                   <td className="px-4 py-3 text-xs text-slate-600">{u.partner}</td>
                   <td className="px-4 py-3"><StatusBadge status={u.tdac} /></td>

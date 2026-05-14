@@ -25,7 +25,17 @@
       "Bash(node -e ' *)",
       "Bash(node --input-type=module)",
       "Bash(awk '/^export const mockInsurance/,/^\\\\];/' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
-      "Bash(pnpm add *)"
+      "Bash(pnpm add *)",
+      "Bash(perl -i -pe 's/esimOrderId: \"ORD-2025-\\(\\\\d+\\)\"/esimIccids: [\"896610000000000$1\"]/g; s/insuranceOrderId: \"ORD-2025-\\(\\\\d+\\)\"/insuranceRefIds: [\"INS-REF-$1\"]/g' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
+      "Bash(awk '/export const mockEsim/,/^\\\\];/' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
+      "Bash(awk 'NR>=790' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
+      "Bash(awk 'NR>=790 && NR<=1043' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
+      "Bash(awk 'NR>=1045' /Users/baby/Desktop/CMS-Development/src/app/data/mockData.ts)",
+      "Bash(awk -F': ' '{sum += $2} END {print \"Total quantity:\", sum}')",
+      "Read(//Users/baby/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(awk 'NR>=485 && NR<=495' /Users/baby/Desktop/CMS-Development/src/app/pages/partner-products/Transportation.tsx)"
     ]
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { X, Ticket, Users, ShoppingBag, LayoutGrid, Pencil, Check, Image as ImageIcon } from "lucide-react";
 import { mockFastPass, mockUsers } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
@@ -8,6 +9,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatusWithDate, sortByDatetime } from "../../components/ui/utils";
 import { exportCSV, exportXLSX, parseExcelDate, exportDateTag } from "../../components/ui/exportUtils";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 const AIRPORTS = [
   { label: "All",  code: "" },
@@ -28,7 +30,7 @@ function AirportTabs({ value, onChange }: { value: string; onChange: (code: stri
           <button
             key={a.code}
             onClick={() => onChange(a.code)}
-            className={`flex items-center gap-2 px-6 py-2.5 text-sm font-medium border-b-[3px] -mb-px transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-2 px-6 py-2.5 text-sm font-medium border-b-[3px] -mb-px transition-colors whitespace-nowrap cursor-pointer ${
               isActive
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -112,7 +114,8 @@ function UserPhotoPanel() {
   );
 }
 
-function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
+function DetailModal({ record, onClose, onBack }: { record: FP; onClose: () => void; onBack?: () => void }) {
+  useBodyScrollLock();
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(record.status);
   const isReadyToUse = status === "Ready to use";
@@ -196,9 +199,20 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex flex-col items-center justify-end sm:justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full sm:max-w-xl lg:max-w-4xl flex flex-col">
+        {onBack && (
+          <div className="px-4 sm:px-0 pb-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="flex items-center gap-1.5 text-xs font-medium text-white/90 hover:text-white bg-black/25 hover:bg-black/40 rounded-full px-3 py-1.5 transition-colors cursor-pointer"
+              onClick={onBack}
+            >
+              ← Back to Order
+            </button>
+          </div>
+        )}
       <div
-        className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl lg:max-w-4xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-t-2xl sm:rounded-2xl w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -210,11 +224,11 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setEditing(!editing)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer"
             >
               <Pencil size={12} /> Edit
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
           </div>
         </div>
 
@@ -231,7 +245,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
               />
               <button
                 onClick={() => setEditing(false)}
-                className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700"
+                className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer"
               >
                 <Check size={11} /> Save
               </button>
@@ -253,6 +267,7 @@ function DetailModal({ record, onClose }: { record: FP; onClose: () => void }) {
             <UserPhotoPanel />
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -298,10 +313,13 @@ function fpXLSXRow(r: FP): (string | number | Date | null)[] {
 }
 
 export function FastPass() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [airportFilter, setAirportFilter] = useState("");
   const [selected, setSelected] = useState<FP | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
+  const [returnUserEmail, setReturnUserEmail] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("flightDateTime");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -312,8 +330,35 @@ export function FastPass() {
       sessionStorage.removeItem("openFastPassId");
       const record = mockFastPass.find((r) => r.fastpassId === id);
       if (record) setSelected(record);
+      return;
+    }
+    const orderId = sessionStorage.getItem("openFastPassOrderId");
+    if (orderId) {
+      sessionStorage.removeItem("openFastPassOrderId");
+      const record = mockFastPass.find((r) => r.orderId === orderId);
+      if (record) setSelected(record);
     }
   }, []);
+
+  useEffect(() => {
+    const id = sessionStorage.getItem("returnToOrderId");
+    if (id) {
+      sessionStorage.removeItem("returnToOrderId");
+      setReturnOrderId(id);
+    }
+    const email = sessionStorage.getItem("returnToUserEmail");
+    if (email) {
+      sessionStorage.removeItem("returnToUserEmail");
+      setReturnUserEmail(email);
+    }
+  }, []);
+
+  function handleBack() {
+    sessionStorage.setItem("openOrderId", returnOrderId!);
+    if (returnUserEmail) sessionStorage.setItem("returnToUserEmail", returnUserEmail);
+    setReturnOrderId(null);
+    navigate("/operations/orders");
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -348,7 +393,7 @@ export function FastPass() {
 
   return (
     <div className="w-full">
-      {selected && <DetailModal record={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailModal record={selected} onClose={() => { setSelected(null); setReturnOrderId(null); }} onBack={returnOrderId ? handleBack : undefined} />}
 
       <MiniDash />
 
@@ -356,7 +401,7 @@ export function FastPass() {
 
       <FilterBar
         showSearch
-        searchableFields={["Order ID", "Email", "Full Name", "Flight No."]}
+        searchableFields={["Order ID", "User Account", "Full Name", "Flight No."]}
         showPeriod
         showExport
         exportDisabled={sorted.length === 0}

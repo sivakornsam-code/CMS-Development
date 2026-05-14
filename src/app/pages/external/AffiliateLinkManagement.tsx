@@ -6,6 +6,7 @@ import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
 import { sortByStatus } from "../../components/ui/utils";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 const PAGE_SIZE = 5;
 const STATUS_PRIORITY = ["Active", "Inactive"];
@@ -25,12 +26,13 @@ function MetricPill({ icon, label, value }: { icon: React.ReactNode; label: stri
 }
 
 function LinkDetailModal({ link, onClose }: { link: AffLink; onClose: () => void }) {
+  useBodyScrollLock();
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Affiliate Link Detail</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <div>
@@ -67,7 +69,7 @@ function LinkDetailModal({ link, onClose }: { link: AffLink; onClose: () => void
           </div>
         </div>
         <div className="px-5 py-4 border-t border-slate-100 shrink-0">
-          <button onClick={onClose} className="w-full py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Close</button>
+          <button onClick={onClose} className="w-full py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 cursor-pointer">Close</button>
         </div>
       </div>
     </div>
@@ -75,6 +77,7 @@ function LinkDetailModal({ link, onClose }: { link: AffLink; onClose: () => void
 }
 
 function CreateLinkModal({ onClose, onSave }: { onClose: () => void; onSave: (v: Partial<AffLink>) => void }) {
+  useBodyScrollLock();
   const [name, setName] = useState("");
   const [partner, setPartner] = useState("");
   const [status, setStatus] = useState("Active");
@@ -86,7 +89,7 @@ function CreateLinkModal({ onClose, onSave }: { onClose: () => void; onSave: (v:
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Create Affiliate Link</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Basic Info</p>
@@ -108,7 +111,7 @@ function CreateLinkModal({ onClose, onSave }: { onClose: () => void; onSave: (v:
             <div className="flex gap-2">
               {["Active", "Inactive"].map(s => (
                 <button key={s} onClick={() => setStatus(s)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${status === s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${status === s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
                   {s}
                 </button>
               ))}
@@ -135,11 +138,11 @@ function CreateLinkModal({ onClose, onSave }: { onClose: () => void; onSave: (v:
           </div>
         </div>
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100 shrink-0">
-          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2 border border-slate-200 rounded-lg text-xs text-slate-600 hover:bg-slate-50 cursor-pointer">Cancel</button>
           <button onClick={() => {
             onSave({ name, partner: mockPartners.find(p => p.code === partner)?.name || partner, status, code: autoCode, url: autoUrl, clicks: 0, registrations: 0, purchases: 0, conversionRate: 0 });
             onClose();
-          }} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700">
+          }} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer">
             Create Link
           </button>
         </div>
@@ -217,7 +220,7 @@ export function AffiliateLinkManagement() {
                     <StatusBadge status={l.status} />
                   </td>
                   <td className="sticky right-0 w-24 bg-white border-l border-slate-100 px-4 py-3 text-right">
-                    <button className="text-xs text-blue-600 hover:underline" onClick={() => setViewLink(l)}>View</button>
+                    <button className="text-xs text-blue-600 hover:underline cursor-pointer" onClick={() => setViewLink(l)}>View</button>
                   </td>
                 </tr>
               ))}

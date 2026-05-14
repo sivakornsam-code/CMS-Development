@@ -44,7 +44,7 @@ export function FilterDropdown({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50 cursor-pointer"
       >
         {Icon && <Icon size={13} />}
         <span>{displayLabel ?? selected?.label ?? placeholder}</span>
@@ -60,7 +60,7 @@ export function FilterDropdown({
                 onChange(option.value);
                 setOpen(false);
               }}
-              className={`block w-full text-left px-3 py-2 text-xs hover:bg-slate-50 ${
+              className={`block w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer ${
                 option.value === value ? "text-blue-600 font-medium" : "text-slate-700"
               }`}
             >

@@ -23,20 +23,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
-
-function ThaiPassIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      className={className}
-    >
-      <path d="M8 0 L9.8 6.2 L16 8 L9.8 9.8 L8 16 L6.2 9.8 L0 8 L6.2 6.2 Z" />
-    </svg>
-  );
-}
+import thaiPassLogo from "@/app/assets/thai-pass-logo.svg";
 
 interface NavItem {
   label: string;
@@ -139,7 +126,7 @@ function NavSection({ section }: { section: NavSection }) {
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-3 py-1.5 mt-4 first:mt-0 group"
+        className="w-full flex items-center justify-between px-3 py-1.5 mt-4 first:mt-0 group cursor-pointer"
       >
         <span className="text-xs text-slate-500 uppercase tracking-wider group-hover:text-slate-300 transition-colors">
           {section.section}
@@ -213,21 +200,13 @@ export function Sidebar({
       >
         {/* Logo / Header */}
         <div className="flex items-center justify-between px-4 border-b border-slate-700/50 h-14 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-              <ThaiPassIcon size={16} className="text-white" />
-            </div>
+          <div className="flex items-center gap-2">
+            <img src={thaiPassLogo} alt="ThaiPass logo" className="h-9 w-9 shrink-0 object-contain" />
             <div>
               <div className="text-white text-sm font-semibold">ThaiPass</div>
               <div className="text-slate-400 text-xs">CMS Admin</div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            <X size={18} />
-          </button>
         </div>
 
         {/* Nav */}

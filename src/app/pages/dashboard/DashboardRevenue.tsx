@@ -42,7 +42,7 @@ export function DashboardRevenue() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <MetricCard
             title="Gross Revenue"
-            value="฿12,480,500"
+            value={formatCurrency(12480500)}
             subtitle="Before tax & refunds"
             icon={<TrendingUp size={18} className="text-blue-600" />}
             color="bg-blue-50"
@@ -50,7 +50,7 @@ export function DashboardRevenue() {
           />
           <MetricCard
             title="Net Revenue"
-            value="฿9,984,400"
+            value={formatCurrency(9984400)}
             subtitle="After tax & refunds"
             icon={<DollarSign size={18} className="text-emerald-600" />}
             color="bg-emerald-50"
