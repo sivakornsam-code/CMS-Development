@@ -36,7 +36,12 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(python3 -c ' *)",
       "Bash(awk 'NR>=485 && NR<=495' /Users/baby/Desktop/CMS-Development/src/app/pages/partner-products/Transportation.tsx)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(cp /Users/baby/Downloads/Group.svg /Users/baby/Desktop/CMS-Development/src/app/assets/thaipass-logo-full.svg)",
+      "Bash(cp \"/Users/baby/Downloads/Group 1.svg\" \"/Users/baby/Desktop/CMS-Development/src/app/assets/login-bg.svg\")",
+      "WebFetch(domain:antigravity.google)",
+      "WebSearch",
+      "WebFetch(domain:www.bram.us)"
     ]
   }
 }

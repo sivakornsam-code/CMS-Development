@@ -2,6 +2,7 @@
 @import './tailwind.css';
 @import './theme.css';
 
+
 /* Global scrollbars */
 * {
   scrollbar-width: thin;

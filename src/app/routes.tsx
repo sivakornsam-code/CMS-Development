@@ -1,5 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/layout/Layout";
+import { isAuthenticated } from "./lib/auth";
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+import { LoginPage } from "./pages/auth/LoginPage";
 import { DashboardGeneral } from "./pages/dashboard/DashboardGeneral";
 import { DashboardRevenue } from "./pages/dashboard/DashboardRevenue";
 import { DashboardCommission } from "./pages/dashboard/DashboardCommission";
@@ -12,15 +21,17 @@ import { AffiliateLinkManagement } from "./pages/external/AffiliateLinkManagemen
 import { ProductList } from "./pages/products/ProductList";
 import { VoucherComponent } from "./pages/products/VoucherComponent";
 import { StubPage } from "./pages/StubPage";
+import { AccountManagement } from "./pages/system/AccountManagement";
 import { FastPass } from "./pages/partner-products/FastPass";
 import { Transportation } from "./pages/partner-products/Transportation";
 import { ESim } from "./pages/partner-products/ESim";
 import { Insurance } from "./pages/partner-products/Insurance";
 
 export const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
   {
     path: "/",
-    Component: Layout,
+    element: <RequireAuth><Layout /></RequireAuth>,
     children: [
       { index: true, element: <Navigate to="/dashboard/general" replace /> },
 
@@ -55,7 +66,7 @@ export const router = createBrowserRouter([
       { path: "settings/documents", element: <StubPage title="Documents Management" description="Manage platform documents, terms of service, and policy files." /> },
 
       // System
-      { path: "system/accounts", element: <StubPage title="Account Management" description="Manage admin user accounts, permissions, and access levels." /> },
+      { path: "system/accounts", element: <AccountManagement /> },
       { path: "system/roles", element: <StubPage title="Roles & Permissions" description="Configure role-based access control and permission sets for admin users." /> },
 
       // Catch all

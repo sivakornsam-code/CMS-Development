@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { NavLink, useLocation } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -23,8 +23,10 @@ import {
   X,
   ChevronDown,
   LogOut,
+  User,
 } from "lucide-react";
 import thaiPassLogo from "@/app/assets/thai-pass-logo.svg";
+import { setAuthenticated } from "@/app/lib/auth";
 
 interface NavItem {
   label: string;
@@ -43,7 +45,6 @@ const DEFAULT_COLLAPSED_SECTIONS = new Set([
   "Product Management",
   "External Management",
   "App Settings",
-  "System",
 ]);
 
 const navSections: NavSection[] = [
@@ -164,7 +165,7 @@ function NavSection({ section }: { section: NavSection }) {
   );
 }
 
-function LogoutModal({ onClose }: { onClose: () => void }) {
+function LogoutModal({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
@@ -190,7 +191,7 @@ function LogoutModal({ onClose }: { onClose: () => void }) {
               Cancel
             </button>
             <button
-              onClick={() => { /* handle logout */ onClose(); }}
+              onClick={onLogout}
               className="px-4 py-2 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors cursor-pointer flex items-center gap-2"
             >
               <LogOut size={14} strokeWidth={2.5} />
@@ -211,6 +212,7 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const [showLogout, setShowLogout] = useState(false);
+  const navigate = useNavigate();
   const navRef = useRef<HTMLElement>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -262,8 +264,8 @@ export function Sidebar({
         {/* Footer */}
         <div className="border-t border-slate-700/50 px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-              A
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0">
+              <User size={14} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-slate-300 text-xs font-medium truncate">Admin User</div>
@@ -280,7 +282,12 @@ export function Sidebar({
         </div>
       </aside>
 
-      {showLogout && <LogoutModal onClose={() => setShowLogout(false)} />}
+      {showLogout && (
+        <LogoutModal
+          onClose={() => setShowLogout(false)}
+          onLogout={() => { setShowLogout(false); setAuthenticated(false); navigate("/login", { replace: true }); }}
+        />
+      )}
     </>
   );
 }

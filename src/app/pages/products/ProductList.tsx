@@ -5,24 +5,23 @@ import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { TablePagination } from "../../components/ui/TablePagination";
+import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
-const PAGE_SIZE = 5;
 const STATUS_PRIORITY = ["Display", "Hide"];
 type SortKey = "status" | "created" | "updated";
 type SortDir = "asc" | "desc";
 
 type Product = typeof mockProducts[0];
 
-const categories = ["Bundle", "Transport", "Airport Service", "eSIM", "Coupons", "Insurance"];
+const categories = ["Bundle", "Transport", "eSIM", "FastPass", "Insurance", "Coupons"];
 const actionTypes = ["Issue Product + Voucher", "Issue Voucher", "Track Only"];
 
 const categoryColor: Record<string, string> = {
   Bundle: "bg-blue-50 text-blue-700",
   Transport: "bg-amber-50 text-amber-700",
-  "Airport Service": "bg-violet-50 text-violet-700",
+  FastPass: "bg-violet-50 text-violet-700",
   eSIM: "bg-cyan-50 text-cyan-700",
   Coupons: "bg-rose-50 text-rose-700",
   Insurance: "bg-emerald-50 text-emerald-700",
@@ -36,8 +35,8 @@ function CategoryBadge({ cat }: { cat: string }) {
 function ProductDetailModal({ product, onClose, onEdit }: { product: Product; onClose: () => void; onEdit: () => void }) {
   useBodyScrollLock();
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">Product Detail</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
@@ -91,8 +90,8 @@ function ProductFormModal({ product, onClose, onSave, title }: {
   const isEdit = !!product;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
@@ -233,8 +232,8 @@ export function ProductList() {
         showPeriod={false}
         showCreate
         createLabel="Create Product"
+        createDisabled
         onSearch={(q) => { setSearch(q); setPage(1); }}
-        onCreate={() => setShowCreate(true)}
         extraFilters={
           <>
             <FilterDropdown
@@ -262,7 +261,15 @@ export function ProductList() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto relative">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm" style={{ minWidth: "860px" }}>
+            <colgroup>
+              <col style={{ width: "130px" }} />{/* Product Code */}
+              <col style={{ width: "130px" }} />{/* Category */}
+              <col />{/* Product Name — fills remaining space */}
+              <col style={{ width: "160px" }} />{/* Created */}
+              <col style={{ width: "160px" }} />{/* Updated */}
+              <col style={{ width: "100px" }} />{/* Status */}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
                 {["Product Code", "Category", "Product Name"].map(h => (
@@ -274,28 +281,21 @@ export function ProductList() {
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
                   <span className="inline-flex items-center gap-1">Updated<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
                 </th>
-                <th className="sticky right-24 bg-slate-50 border-l border-slate-100 z-10 text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
                   <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
                 </th>
-                <th className="sticky right-0 w-24 bg-slate-50 border-l border-slate-100 z-10 text-right text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map(p => (
-                <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-xs font-mono text-slate-600">{p.code}</td>
+                <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 cursor-pointer" onClick={() => setViewProduct(p)}>
+                  <td className="px-4 py-3 text-xs font-mono text-slate-600 whitespace-nowrap">{p.code}</td>
                   <td className="px-4 py-3"><CategoryBadge cat={p.category} /></td>
-                  <td className="px-4 py-3 text-xs font-medium text-slate-800">{p.name}</td>
+                  <td className="px-4 py-3 text-xs font-medium text-slate-800 truncate">{p.name}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.created)}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.updated)}</td>
-                  <td className="sticky right-24 bg-white border-l border-slate-100 px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <StatusBadge status={p.status} />
-                  </td>
-                  <td className="sticky right-0 w-24 bg-white border-l border-slate-100 px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="text-xs text-slate-600 hover:text-blue-600 cursor-pointer" onClick={() => setViewProduct(p)}>View</button>
-                      <button className="text-xs text-blue-600 hover:underline cursor-pointer" onClick={() => setEditProduct(p)}>Edit</button>
-                    </div>
                   </td>
                 </tr>
               ))}

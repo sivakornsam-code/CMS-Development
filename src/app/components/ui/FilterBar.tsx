@@ -15,6 +15,7 @@ interface FilterBarProps {
   showPeriod?: boolean;
   showCreate?: boolean;
   createLabel?: string;
+  createDisabled?: boolean;
   onSearch?: (v: string) => void;
   onPeriodChange?: (v: string) => void;
   onCreate?: () => void;
@@ -116,6 +117,7 @@ export function FilterBar({
   showPeriod = true,
   showCreate = false,
   createLabel = "Create",
+  createDisabled = false,
   onSearch,
   onPeriodChange,
   onCreate,
@@ -291,7 +293,8 @@ export function FilterBar({
         {showCreate && (
           <button
             onClick={onCreate}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer"
+            disabled={createDisabled}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={13} />
             {createLabel}

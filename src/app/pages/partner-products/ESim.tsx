@@ -66,7 +66,7 @@ function MiniDash() {
           <div>
             <p className="text-xs text-slate-500">Total Revenue</p>
             <p className="text-xl font-semibold text-slate-900 mt-0.5">{formatCurrency(totalRevenue)}</p>
-            <p className="text-xs text-slate-400 mt-0.5">All eSIM orders</p>
+            <p className="text-xs text-slate-400 mt-0.5">Direct &amp; Top-up</p>
           </div>
         </div>
 
@@ -77,7 +77,7 @@ function MiniDash() {
           <div>
             <p className="text-xs text-slate-500">Total eSIM Orders</p>
             <p className="text-xl font-semibold text-slate-900 mt-0.5">{totalOrders}</p>
-            <p className="text-xs text-slate-400 mt-0.5">Standard & Top-up</p>
+            <p className="text-xs text-slate-400 mt-0.5">Direct &amp; Top-up</p>
           </div>
         </div>
 

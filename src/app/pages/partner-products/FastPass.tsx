@@ -77,7 +77,7 @@ function MiniDash() {
   const directOrders = new Set(mockFastPass.filter((r) => r.purchaseFrom === "Direct").map((r) => r.orderId)).size;
 
   const cards = [
-    { label: "Total FastPass Orders", value: totalOrders, sub: "All time orders", icon: <Ticket size={16} className="text-blue-600" />, bg: "bg-blue-50" },
+    { label: "Total FastPass Orders", value: totalOrders, sub: "All time", icon: <Ticket size={16} className="text-blue-600" />, bg: "bg-blue-50" },
     { label: "Total FastPass Purchased", value: totalFastPasses, sub: "Across all orders", icon: <ShoppingBag size={16} className="text-violet-600" />, bg: "bg-violet-50" },
     { label: "Unique Purchasing Users", value: unique, sub: `Out of ${totalUsers} total users`, icon: <Users size={16} className="text-emerald-600" />, bg: "bg-emerald-50" },
     { label: "Bundle vs Direct", value: `${bundleOrders} · ${directOrders}`, sub: "Bundle · Direct", icon: <LayoutGrid size={16} className="text-amber-600" />, bg: "bg-amber-50" },

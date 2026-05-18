@@ -106,16 +106,19 @@ export const mockUsers = [
 ];
 
 export const mockProducts = [
-  { id: "PRD-001", code: "TP-LITE", category: "Bundle", name: "ThaiPass Lite", status: "Display", created: "2024-10-01 09:00", updated: "2025-03-15 14:30" },
-  { id: "PRD-002", code: "TP-PLUS", category: "Bundle", name: "ThaiPass Plus", status: "Display", created: "2024-10-01 09:00", updated: "2025-04-01 10:00" },
-  { id: "PRD-003", code: "TP-PRO", category: "Bundle", name: "ThaiPass Pro", status: "Display", created: "2024-10-01 09:00", updated: "2025-04-01 10:00" },
-  { id: "PRD-004", code: "TRANS-APT", category: "Transport", name: "Airport Transfer (Standard)", status: "Display", created: "2024-11-15 10:00", updated: "2025-02-20 09:30" },
-  { id: "PRD-005", code: "TRANS-CHF", category: "Transport", name: "Chauffeur Service", status: "Display", created: "2024-11-15 10:00", updated: "2025-03-01 11:45" },
-  { id: "PRD-006", code: "ESIM-7STD", category: "eSIM", name: "eSIM 7D Standard", status: "Display", created: "2024-12-01 08:00", updated: "2025-01-20 13:00" },
-  { id: "PRD-007", code: "ESIM-30UNL", category: "eSIM", name: "eSIM 30D Unlimited", status: "Display", created: "2024-12-01 08:00", updated: "2025-02-10 16:00" },
-  { id: "PRD-008", code: "FP-STD", category: "Airport Service", name: "FastPass Standard", status: "Display", created: "2025-01-10 09:00", updated: "2025-04-05 10:30" },
-  { id: "PRD-009", code: "INS-14D", category: "Insurance", name: "Travel Insurance 14D", status: "Display", created: "2025-01-20 11:00", updated: "2025-03-30 09:15" },
-  { id: "PRD-010", code: "CPN-TRANS", category: "Coupons", name: "Transport 500 Discount", status: "Hide", created: "2025-02-01 10:00", updated: "2025-02-01 10:00" },
+  { id: "PRD-001", code: "TP-LITE",        category: "Bundle",    name: "ThaiPass Lite",           status: "Display", created: "2024-10-01 09:00", updated: "2025-03-15 14:30" },
+  { id: "PRD-002", code: "TP-PLUS",        category: "Bundle",    name: "ThaiPass Plus",           status: "Display", created: "2024-10-01 09:00", updated: "2025-04-01 10:00" },
+  { id: "PRD-003", code: "TP-PRO",         category: "Bundle",    name: "ThaiPass Pro",            status: "Display", created: "2024-10-01 09:00", updated: "2025-04-01 10:00" },
+  { id: "PRD-004", code: "TRANS-APT",      category: "Transport", name: "Airport Transfer",        status: "Display", created: "2024-11-15 10:00", updated: "2025-02-20 09:30" },
+  { id: "PRD-005", code: "TRANS-CHF",      category: "Transport", name: "Chauffeur Service",       status: "Display", created: "2024-11-15 10:00", updated: "2025-03-01 11:45" },
+  { id: "PRD-006", code: "ESIM-7D-5GB",    category: "eSIM",      name: "eSIM Standard 7D 5GB",   status: "Display", created: "2024-12-01 08:00", updated: "2025-01-20 13:00" },
+  { id: "PRD-007", code: "ESIM-14D-8GB",   category: "eSIM",      name: "eSIM Standard 14D 8GB",  status: "Display", created: "2024-12-01 08:00", updated: "2025-02-10 16:00" },
+  { id: "PRD-008", code: "ESIM-30D-10GB",  category: "eSIM",      name: "eSIM Standard 30D 10GB", status: "Display", created: "2024-12-01 08:00", updated: "2025-02-10 16:00" },
+  { id: "PRD-009", code: "ESIM-TU-1D-500", category: "eSIM",      name: "eSIM Top-up 1D 500MB",   status: "Display", created: "2025-01-10 09:00", updated: "2025-03-05 10:00" },
+  { id: "PRD-010", code: "ESIM-TU-3D-1GB", category: "eSIM",      name: "eSIM Top-up 3D 1GB",     status: "Display", created: "2025-01-10 09:00", updated: "2025-03-05 10:00" },
+  { id: "PRD-011", code: "FP-STD",         category: "FastPass",  name: "FastPass",                status: "Display", created: "2025-01-10 09:00", updated: "2025-04-05 10:30" },
+  { id: "PRD-012", code: "INS-14D",        category: "Insurance", name: "Travel Insurance 14D",    status: "Display", created: "2025-01-20 11:00", updated: "2025-03-30 09:15" },
+  { id: "PRD-013", code: "CPN-TRANS",      category: "Coupons",   name: "Transport 500 Discount",  status: "Hide",    created: "2025-02-01 10:00", updated: "2025-02-01 10:00" },
 ];
 
 export const mockVouchers = [

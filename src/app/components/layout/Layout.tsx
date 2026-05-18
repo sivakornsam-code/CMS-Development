@@ -33,17 +33,19 @@ export function Layout() {
   const pageInfo = pageTitles[location.pathname] || { title: "ThaiPass CMS", subtitle: "" };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main content — shifts right when sidebar is open */}
+      {/* Main content — scroll container lives here, not on html/body.
+          This means Radix measures zero scrollbar gap and never injects
+          margin compensation, so modals open without any background shift. */}
       <div
-        className={`flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+        className={`flex-1 min-w-0 flex flex-col h-screen overflow-y-scroll transition-all duration-300 ease-in-out ${
           sidebarOpen ? "lg:ml-60" : "lg:ml-0"
         }`}
       >
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 lg:px-6 h-14 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 lg:px-6 h-14 flex items-center gap-4 shrink-0">
           <button
             onClick={() => setSidebarOpen((o) => !o)}
             className="text-slate-500 hover:text-slate-700 transition-colors"
@@ -61,7 +63,7 @@ export function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 min-h-0 p-4 lg:p-6">
           <Outlet />
         </main>
       </div>
