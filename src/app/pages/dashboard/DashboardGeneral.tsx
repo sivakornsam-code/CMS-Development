@@ -3,6 +3,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, Users, Link2, ShoppingCart, Download, ArrowUpRight } from "lucide-react";
 import { mockStats, mockProductPerformance, formatNumber, formatCurrency } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 
 const downloadData = [
   { month: "Nov", ios: 3200, android: 2800 },
@@ -40,6 +41,7 @@ function MetricCard({ title, value, subtitle, icon, trend, color }: {
 
 export function DashboardGeneral() {
   return (
+    <ComingSoonOverlay title="General" description="Dashboard analytics and growth metrics are coming in Phase 1.">
     <div className="space-y-5">
       {/* Info bar */}
       <div className="flex items-center justify-between">
@@ -169,5 +171,6 @@ export function DashboardGeneral() {
         </div>
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

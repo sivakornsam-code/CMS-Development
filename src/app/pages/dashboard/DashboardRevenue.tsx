@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, DollarSign, ShoppingCart, ArrowUpRight } from "lucide-react";
 import { revenueChartData, revenueByProduct, formatNumber, formatCurrency } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 
 function MetricCard({ title, value, subtitle, icon, color, trend }: {
   title: string; value: string; subtitle?: string; icon: React.ReactNode; color: string; trend?: string;
@@ -27,6 +28,7 @@ function MetricCard({ title, value, subtitle, icon, color, trend }: {
 
 export function DashboardRevenue() {
   return (
+    <ComingSoonOverlay title="Revenue" description="Revenue analytics and financial metrics are coming in Phase 1.">
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-white border border-slate-200 rounded-lg px-3 py-1.5">
@@ -142,5 +144,6 @@ export function DashboardRevenue() {
         </div>
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

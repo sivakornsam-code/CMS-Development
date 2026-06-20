@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Handshake } from "lucide-react";
 import { mockPartners } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
@@ -202,6 +203,7 @@ export function PartnerManagement() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
+    <ComingSoonOverlay title="Partner Management" description="Partner management is coming in Phase 1.">
     <div>
       {showCreate && <PartnerForm title="Create Partner" onClose={() => setShowCreate(false)} onSave={(v) => {
         const newP = { ...v, id: `P00${partners.length + 1}`, created: new Date().toISOString().slice(0, 16).replace("T", " "), updated: new Date().toISOString().slice(0, 16).replace("T", " ") } as Partner;
@@ -270,5 +272,6 @@ export function PartnerManagement() {
         <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

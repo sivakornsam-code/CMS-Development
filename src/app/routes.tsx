@@ -1,10 +1,33 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, useLocation } from "react-router";
 import { Layout } from "./components/layout/Layout";
-import { isAuthenticated } from "./lib/auth";
+import { isAuthenticated, getAdminRole, type AdminRole } from "./lib/auth";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
+const ROLE_ALLOWED: Record<AdminRole, string[]> = {
+  super: [],
+  transport: ["/partner-products/transportation", "/system/accounts"],
+  immigration: ["/partner-products/fastpass", "/system/accounts"],
+};
+
+const ROLE_DEFAULT: Record<AdminRole, string> = {
+  super: "/operations/orders",
+  transport: "/partner-products/transportation",
+  immigration: "/partner-products/fastpass",
+};
+
+function RoleGuard({ children }: { children: React.ReactNode }) {
+  const role = getAdminRole();
+  const location = useLocation();
+  if (!role || role === "super") return <>{children}</>;
+  const allowed = ROLE_ALLOWED[role];
+  if (!allowed.some((p) => location.pathname.startsWith(p))) {
+    return <Navigate to={ROLE_DEFAULT[role]} replace />;
   }
   return <>{children}</>;
 }
@@ -31,9 +54,9 @@ export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   {
     path: "/",
-    element: <RequireAuth><Layout /></RequireAuth>,
+    element: <RequireAuth><RoleGuard><Layout /></RoleGuard></RequireAuth>,
     children: [
-      { index: true, element: <Navigate to="/dashboard/general" replace /> },
+      { index: true, element: <Navigate to="/operations/orders" replace /> },
 
       // Dashboard
       { path: "dashboard/general", element: <DashboardGeneral /> },
@@ -70,7 +93,7 @@ export const router = createBrowserRouter([
       { path: "system/roles", element: <StubPage title="Roles & Permissions" description="Configure role-based access control and permission sets for admin users." /> },
 
       // Catch all
-      { path: "*", element: <Navigate to="/dashboard/general" replace /> },
+      { path: "*", element: <Navigate to="/operations/orders" replace /> },
     ],
   },
 ]);

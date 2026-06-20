@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DollarSign, Clock, Plus, X, Upload, ChevronDown } from "lucide-react";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 import { commissionPayments, formatCurrency } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { FilterDropdown } from "../../components/ui/FilterDropdown";
@@ -123,6 +124,7 @@ export function DashboardCommission() {
     : sortByDatetime(filtered, "updatedAt", sortDir);
 
   return (
+    <ComingSoonOverlay title="Commission" description="Commission payment management is coming in Phase 1.">
     <div className="space-y-5">
       {showModal && <CreatePaymentModal onClose={() => setShowModal(false)} />}
 
@@ -232,5 +234,6 @@ export function DashboardCommission() {
         </div>
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

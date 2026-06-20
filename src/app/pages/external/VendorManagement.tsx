@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Building2 } from "lucide-react";
 import { mockVendors } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
@@ -167,6 +168,7 @@ export function VendorManagement() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
+    <ComingSoonOverlay title="Vendor Management" description="Vendor management is coming in Phase 1.">
     <div>
       {showCreate && (
         <VendorForm title="Create Vendor" onClose={() => setShowCreate(false)} onSave={(v) => {
@@ -240,5 +242,6 @@ export function VendorManagement() {
         <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

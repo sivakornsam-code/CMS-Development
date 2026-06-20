@@ -26,7 +26,7 @@ import {
   User,
 } from "lucide-react";
 import thaiPassLogo from "@/app/assets/thai-pass-logo.svg";
-import { setAuthenticated } from "@/app/lib/auth";
+import { setAuthenticated, getAdminRole, type AdminRole } from "@/app/lib/auth";
 
 interface NavItem {
   label: string;
@@ -40,11 +40,17 @@ interface NavSection {
   items: NavItem[];
 }
 
-const DEFAULT_COLLAPSED_SECTIONS = new Set([
-  "Dashboard",
-  "Product Management",
-  "External Management",
-  "App Settings",
+const DEFAULT_COLLAPSED_SECTIONS = new Set<string>();
+
+const COMING_SOON_PATHS = new Set([
+  "/dashboard/general",
+  "/dashboard/revenue",
+  "/dashboard/commission",
+  "/products/list",
+  "/products/vouchers",
+  "/external/vendors",
+  "/external/partners",
+  "/external/affiliate-links",
 ]);
 
 const navSections: NavSection[] = [
@@ -111,6 +117,26 @@ const navSections: NavSection[] = [
   },
 ];
 
+const ROLE_ALLOWED: Record<AdminRole, string[]> = {
+  super: [],
+  transport: ["/partner-products/transportation", "/system/accounts"],
+  immigration: ["/partner-products/fastpass", "/system/accounts"],
+};
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+  super: "Super Admin",
+  transport: "Transport Admin",
+  immigration: "Immigration Admin",
+};
+
+function getFilteredSections(role: AdminRole | null): NavSection[] {
+  if (!role || role === "super") return navSections;
+  const allowed = ROLE_ALLOWED[role];
+  return navSections
+    .map((s) => ({ ...s, items: s.items.filter((item) => allowed.includes(item.path)) }))
+    .filter((s) => s.items.length > 0);
+}
+
 function NavSection({ section }: { section: NavSection }) {
   const location = useLocation();
   const hasActive = section.items.some((item) => location.pathname === item.path);
@@ -143,22 +169,27 @@ function NavSection({ section }: { section: NavSection }) {
 
       {open && (
         <div className="mt-0.5 space-y-0.5">
-          {section.items.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "text-white bg-blue-600"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
-                }`
-              }
-            >
-              <span className="shrink-0">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {section.items.map((item) => {
+            const soon = COMING_SOON_PATHS.has(item.path);
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "text-white bg-blue-600"
+                      : soon
+                        ? "text-slate-600 opacity-50 hover:opacity-100 hover:text-slate-300 hover:bg-white/5"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                  }`
+                }
+              >
+                <span className="shrink-0">{item.icon}</span>
+                <span className="truncate">{item.label}</span>
+              </NavLink>
+            );
+          })}
         </div>
       )}
     </div>
@@ -214,6 +245,8 @@ export function Sidebar({
   const [showLogout, setShowLogout] = useState(false);
   const navigate = useNavigate();
   const navRef = useRef<HTMLElement>(null);
+  const role = getAdminRole();
+  const filteredSections = getFilteredSections(role);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleScroll = useCallback(() => {
@@ -255,7 +288,7 @@ export function Sidebar({
         {/* Nav */}
         <nav ref={navRef} onScroll={handleScroll} className="sidebar-nav flex-1 overflow-y-auto py-3">
           <div className="px-2">
-            {navSections.map((section) => (
+            {filteredSections.map((section) => (
               <NavSection key={section.section} section={section} />
             ))}
           </div>
@@ -268,7 +301,9 @@ export function Sidebar({
               <User size={14} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-slate-300 text-xs font-medium truncate">Admin User</div>
+              <div className="text-slate-300 text-xs font-medium truncate">
+                {role ? ROLE_LABELS[role] : "Admin User"}
+              </div>
               <div className="text-slate-500 text-xs truncate">admin@thaipass.com</div>
             </div>
             <button

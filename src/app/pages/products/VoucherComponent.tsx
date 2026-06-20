@@ -7,6 +7,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 
 const PAGE_SIZE = 5;
 const STATUS_PRIORITY = ["Active", "Inactive"];
@@ -273,6 +274,7 @@ export function VoucherComponent() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
+    <ComingSoonOverlay title="Voucher Component" description="Voucher component management is coming in Phase 1.">
     <div>
       {viewVoucher && !editVoucher && <VoucherDetailModal voucher={viewVoucher} onClose={() => setViewVoucher(null)} onEdit={() => { setEditVoucher(viewVoucher); setViewVoucher(null); }} />}
       {editVoucher && <VoucherFormModal title="Edit Voucher Component" voucher={editVoucher} onClose={() => setEditVoucher(null)} onSave={(v) => setVouchers(vouchers.map(vo => vo.id === editVoucher.id ? { ...vo, ...v } : vo))} />}
@@ -338,5 +340,6 @@ export function VoucherComponent() {
         <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

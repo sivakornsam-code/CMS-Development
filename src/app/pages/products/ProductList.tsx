@@ -8,6 +8,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination, PAGE_SIZE } from "../../components/ui/TablePagination";
 import { formatDate, sortByStatus, sortByDatetime } from "../../components/ui/utils";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 
 const STATUS_PRIORITY = ["Display", "Hide"];
 type SortKey = "status" | "created" | "updated";
@@ -218,6 +219,7 @@ export function ProductList() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
+    <ComingSoonOverlay title="Selling Product List" description="Product catalog management is coming in Phase 1.">
     <div>
       {viewProduct && !editProduct && <ProductDetailModal product={viewProduct} onClose={() => setViewProduct(null)} onEdit={() => { setEditProduct(viewProduct); setViewProduct(null); }} />}
       {editProduct && <ProductFormModal title="Edit Product" product={editProduct} onClose={() => setEditProduct(null)} onSave={(v) => setProducts(products.map(p => p.id === editProduct.id ? { ...p, ...v } : p))} />}
@@ -266,6 +268,7 @@ export function ProductList() {
               <col style={{ width: "130px" }} />{/* Product Code */}
               <col style={{ width: "130px" }} />{/* Category */}
               <col />{/* Product Name — fills remaining space */}
+              <col style={{ width: "120px" }} />{/* Price */}
               <col style={{ width: "160px" }} />{/* Created */}
               <col style={{ width: "160px" }} />{/* Updated */}
               <col style={{ width: "100px" }} />{/* Status */}
@@ -275,11 +278,12 @@ export function ProductList() {
                 {["Product Code", "Category", "Product Name"].map(h => (
                   <th key={h} className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">{h}</th>
                 ))}
+                <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap">Price (THB)</th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("created")}>
-                  <span className="inline-flex items-center gap-1">Created<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
+                  <span className="inline-flex items-center gap-1">Created Date/Time<SortIndicator active={sortKey === "created"} direction={sortDir} /></span>
                 </th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("updated")}>
-                  <span className="inline-flex items-center gap-1">Updated<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
+                  <span className="inline-flex items-center gap-1">Updated Date/Time<SortIndicator active={sortKey === "updated"} direction={sortDir} /></span>
                 </th>
                 <th className="text-left text-xs font-medium text-slate-400 px-4 py-2.5 whitespace-nowrap cursor-pointer select-none hover:text-slate-600" onClick={() => handleSort("status")}>
                   <span className="inline-flex items-center gap-1">Status<SortIndicator active={sortKey === "status"} direction={sortDir} /></span>
@@ -292,6 +296,9 @@ export function ProductList() {
                   <td className="px-4 py-3 text-xs font-mono text-slate-600 whitespace-nowrap">{p.code}</td>
                   <td className="px-4 py-3"><CategoryBadge cat={p.category} /></td>
                   <td className="px-4 py-3 text-xs font-medium text-slate-800 truncate">{p.name}</td>
+                  <td className="px-4 py-3 text-xs text-slate-700 whitespace-nowrap">
+                    {p.price === 0 ? <span className="text-slate-400">—</span> : `฿${p.price.toLocaleString()}`}
+                  </td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.created)}</td>
                   <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(p.updated)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -306,5 +313,6 @@ export function ProductList() {
         <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }

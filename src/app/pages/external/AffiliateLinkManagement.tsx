@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Link2, MousePointerClick, UserCheck, ShoppingBag, TrendingUp } from "lucide-react";
 import { mockAffiliateLinks, mockPartners, formatNumber } from "../../data/mockData";
 import { FilterBar } from "../../components/ui/FilterBar";
+import { ComingSoonOverlay } from "../../components/ui/ComingSoonOverlay";
 import { SortIndicator } from "../../components/ui/SortIndicator";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { TablePagination } from "../../components/ui/TablePagination";
@@ -175,6 +176,7 @@ export function AffiliateLinkManagement() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
+    <ComingSoonOverlay title="Affiliate Link Management" description="Affiliate link management is coming in Phase 1.">
     <div>
       {viewLink && <LinkDetailModal link={viewLink} onClose={() => setViewLink(null)} />}
       {showCreate && <CreateLinkModal onClose={() => setShowCreate(false)} onSave={(v) => {
@@ -231,5 +233,6 @@ export function AffiliateLinkManagement() {
         <TablePagination total={filtered.length} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>
+    </ComingSoonOverlay>
   );
 }
