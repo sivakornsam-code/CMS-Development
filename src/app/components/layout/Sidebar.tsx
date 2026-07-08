@@ -42,6 +42,17 @@ interface NavSection {
 
 const DEFAULT_COLLAPSED_SECTIONS = new Set<string>();
 
+// Temporarily hidden from the sidebar. Remove entries here to restore them.
+const HIDDEN_SECTIONS = new Set<string>([
+  "Dashboard",
+  "Product Management",
+  "External Management",
+  "App Settings",
+]);
+const HIDDEN_PATHS = new Set<string>([
+  "/system/roles",
+]);
+
 const COMING_SOON_PATHS = new Set([
   "/dashboard/general",
   "/dashboard/revenue",
@@ -130,9 +141,14 @@ const ROLE_LABELS: Record<AdminRole, string> = {
 };
 
 function getFilteredSections(role: AdminRole | null): NavSection[] {
-  if (!role || role === "super") return navSections;
+  const visible = navSections
+    .filter((s) => !HIDDEN_SECTIONS.has(s.section))
+    .map((s) => ({ ...s, items: s.items.filter((item) => !HIDDEN_PATHS.has(item.path)) }))
+    .filter((s) => s.items.length > 0);
+
+  if (!role || role === "super") return visible;
   const allowed = ROLE_ALLOWED[role];
-  return navSections
+  return visible
     .map((s) => ({ ...s, items: s.items.filter((item) => allowed.includes(item.path)) }))
     .filter((s) => s.items.length > 0);
 }
